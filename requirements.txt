@@ -1,6 +1,0 @@
-Django
-gunicorn
-django-heroku
-dj-database-url
-sqlparse
-asgiref

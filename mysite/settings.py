@@ -15,9 +15,7 @@ import os
 from dotenv import load_dotenv
 import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
-# load_dotenv(Path(BASE_DIR) / '.env')
-load_dotenv()  # Load environment variables from .env file
-
+load_dotenv()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -30,11 +28,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'uva-cs-3240-project-b-10-7d152fd5a130.herokuapp.com']
 
-
-# Application definition
-
-# SITE_ID=4 # local
-SITE_ID=4 # prod
+SITE_ID=4
 
 INSTALLED_APPS = [
     'django.contrib.admin',

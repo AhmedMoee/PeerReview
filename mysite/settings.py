@@ -33,7 +33,8 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'uva-cs-3240-project-b-10-7d152fd5a13
 
 # Application definition
 
-SITE_ID=3
+# SITE_ID=4 # local
+SITE_ID=5 # prod
 
 INSTALLED_APPS = [
     'django.contrib.admin',

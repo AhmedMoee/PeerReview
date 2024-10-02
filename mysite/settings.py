@@ -155,5 +155,7 @@ AUTHENTICATION_BACKEND = (
     'allauth.account.auth_backends.AuthenticationBackend'
 )
 
+SOCIALACCOUNT_ADAPTER = 'users.adapter.MySocialAccountAdapter'
+
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"

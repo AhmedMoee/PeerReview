@@ -157,5 +157,5 @@ AUTHENTICATION_BACKEND = (
 
 SOCIALACCOUNT_ADAPTER = 'users.adapter.MySocialAccountAdapter'
 
-LOGIN_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = "/"

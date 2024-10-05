@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
+from .forms import FileUploadForm
 
 def home(request):
     # If the user is authenticated, redirect to the dashboard
@@ -21,3 +22,14 @@ def dashboard(request):
 def logout_view(request):
     logout(request)
     return redirect('/')
+
+def common_dashboard(request):
+    if request.method == 'POST':
+        form = FileUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('common_dashboard')
+    else:
+        form = FileUploadForm()
+    
+    return render(request, 'common_dashboard.html', {'form': form})

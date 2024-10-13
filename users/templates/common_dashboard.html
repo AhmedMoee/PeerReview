@@ -5,6 +5,21 @@
 {% block content %}
     <h1>Welcome, Common User!</h1>
     <p>You can create and manage your own projects here.</p>
+
+    <!-- <h2>Upload a File</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Upload</button>
+    </form> -->
+
+    <div class="upload-section">
+        <h2>Upload a File</h2>
+        <form>
+            <input type="file" id="fileInput">
+            <button type="button" onclick="document.getElementById('fileInput').click();">Upload</button>
+        </form>
+    </div>
     <!-- Add common user-specific content here -->
 
     <a href="{% url 'logout' %}" class="btn btn-danger mt-4">

@@ -129,6 +129,43 @@ def request_to_join(request, project_id):
 
     return redirect('project_list')
 
+@login_required
+def manage_join_requests(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+
+    # Ensure the current user is the owner of the project
+    if project.owner != request.user:
+        return redirect('project_list')
+
+    pending_requests = JoinRequest.objects.filter(project=project, status='pending')
+    return render(request, 'manage_join_requests.html', {'project': project, 'pending_requests': pending_requests})
+
+@login_required
+def approve_join_request(request, request_id):
+    join_request = get_object_or_404(JoinRequest, id=request_id)
+
+    # Ensure the current user is the owner of the project
+    if join_request.project.owner != request.user:
+        return redirect('project_list')
+
+    join_request.status = 'accepted'
+    join_request.save()
+
+    join_request.project.members.add(join_request.user)
+    return redirect('manage_join_requests', project_id=join_request.project.id)
+
+@login_required
+def deny_join_request(request, request_id):
+    join_request = get_object_or_404(JoinRequest, id=request_id)
+
+    # Ensure the current user is the owner of the project
+    if join_request.project.owner != request.user:
+        return redirect('project_list')
+
+    join_request.status = 'denied'
+    join_request.save()
+
+    return redirect('manage_join_requests', project_id=join_request.project.id)
 
 def project_detail(request, project_id):
     project = get_object_or_404(Project, id=project_id)

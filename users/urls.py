@@ -9,4 +9,7 @@ urlpatterns = [
     path('create_project/', views.create_project, name='create_project'),
     path('projects/', views.project_list, name='project_list'),
     path('projects/request_to_join/<int:project_id>/', views.request_to_join, name='request_to_join'),
+    path('projects/<int:project_id>/manage_requests/', views.manage_join_requests, name='manage_join_requests'),
+    path('approve_request/<int:request_id>/', views.approve_join_request, name='approve_join_request'),
+    path('deny_request/<int:request_id>/', views.deny_join_request, name='deny_join_request'),
 ]

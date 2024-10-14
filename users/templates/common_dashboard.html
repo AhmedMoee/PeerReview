@@ -6,6 +6,11 @@
     <h1>Welcome, Common User!</h1>
     <p>You can create and manage your own projects here.</p>
 
+    <div class="create-project-section mt-5">
+        <h2>Create a New Project</h2>
+        <a href="{% url 'create_project' %}" class="btn btn-success">Create Project</a>
+    </div>
+    
     <!-- <h2>Upload a File</h2>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
@@ -13,11 +18,15 @@
         <button type="submit">Upload</button>
     </form> -->
 
-    <div class="upload-section">
-        <h2>Upload a File</h2>
-        <form>
-            <input type="file" id="fileInput">
-            <button type="button" onclick="document.getElementById('fileInput').click();">Upload</button>
+    <div class="upload-section mt-5">
+        <h2 class="mb-4">Upload a File</h2>
+        <form method="post" enctype="multipart/form-data" class="form-inline">
+            {% csrf_token %}
+            <div class="input-group">
+                {{ form.file }}
+                <input type="file" id="fileInput">
+                <button type="button" onclick="document.getElementById('fileInput').click();" class="btn btn-primary" type="submit">Upload</button>
+            </div>
         </form>
     </div>
     <!-- Add common user-specific content here -->

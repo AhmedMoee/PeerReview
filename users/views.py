@@ -3,6 +3,7 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from .models import Upload  
 from .forms import FileUploadForm
+from .forms import ProjectForm
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
 
@@ -73,3 +74,18 @@ def upload_file(request):
     else:
         form = FileUploadForm()
     return render(request, 'upload_file.html', {'form': form})
+
+@login_required
+def create_project(request):
+    if request.method == 'POST':
+        form = ProjectForm(request.POST)
+        if form.is_valid():
+            project = form.save(commit=False)
+            project.owner = request.user
+            project.save()
+            project.members.add(request.user)
+            return redirect('dashboard')
+    else:
+        form = ProjectForm()
+
+    return render(request, 'create_project.html', {'form': form})

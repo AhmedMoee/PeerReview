@@ -1,9 +1,11 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
-from .models import Upload  
+from .models import Upload, JoinRequest
 from .forms import FileUploadForm
 from .forms import ProjectForm
+
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
 
@@ -89,3 +91,55 @@ def create_project(request):
         form = ProjectForm()
 
     return render(request, 'create_project.html', {'form': form})
+
+
+from django.shortcuts import render
+from .models import Project
+
+
+@login_required
+def project_list(request):
+    projects = Project.objects.all()
+    project_status = {}
+
+    for project in projects:
+        if request.user in project.members.all():
+            project_status[project.id] = 'member'
+        elif JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists():
+            project_status[project.id] = 'pending'
+        else:
+            project_status[project.id] = 'not_member'
+
+    return render(request, 'project_list.html', {
+        'projects': projects,
+        'project_status': project_status
+    })
+
+
+def request_to_join(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+
+    # Check if the user has already made a request for this project
+    if JoinRequest.objects.filter(user=request.user, project=project).exists():
+        messages.error(request, 'You have already requested to join this project.')
+    else:
+        # Create a new JoinRequest object
+        JoinRequest.objects.create(user=request.user, project=project)
+        messages.success(request, 'Your request to join the project has been submitted.')
+
+    return redirect('project_list')
+
+
+def project_detail(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+
+    if request.user == project.owner:
+        pending_requests = JoinRequest.objects.filter(project=project, status='pending')
+    else:
+        pending_requests = None
+
+    return render(request, 'project_detail.html', {
+        'project': project,
+        'pending_requests': pending_requests,
+    })
+

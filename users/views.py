@@ -115,10 +115,16 @@ def project_list(request):
             else:
                 project_status[project.id] = 'not_member'
 
+    project_permissions = {}
+    for project in projects:
+        is_owner = project.owner == request.user
+        project_permissions[project.id] = is_owner or is_pma_admin
+
     return render(request, 'project_list.html', {
         'projects': projects,
         'project_status': project_status,
         'is_pma_admin': is_pma_admin, 
+        'project_permissions': project_permissions
     })
 
 
@@ -201,14 +207,22 @@ def project_uploads(request, project_name, id):
             file_key = file['Key']
             if f"{project.name.lower()}/" in file_key.lower(): 
                 file_list.append({
-                    'name': file['Key'],
+                    'name': file_key.split('/')[-1],
                     'url': f'https://{bucket_name}.s3.amazonaws.com/{file_key}'
                 })
     except Exception as e:
         print(f'Error fetching files: {e}')
         file_list = []
 
-    return render(request, 'project_uploads.html', {'project': project, 'files': file_list})
+    is_owner_or_admin = (project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists())
+
+    context = {
+        'project': project,
+        'files': file_list,
+        'is_owner_or_admin': is_owner_or_admin,  
+    }
+
+    return render(request, 'project_uploads.html', context)
 
 def view_project(request, project_name, id):
     project = get_object_or_404(Project, id=id)
@@ -244,3 +258,38 @@ def view_project(request, project_name, id):
         'form': form,
         'is_pma_admin': is_pma_admin
     })
+
+def delete_project(request, project_name, id):
+    project = get_object_or_404(Project, id=id)
+
+    is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
+    is_project_owner = project.owner == request.user
+    
+    if is_pma_admin or is_project_owner:
+        # Delete the project and associated files if any
+        project.delete()
+        messages.success(request, "Project deleted successfully.")
+        return redirect('project_list')
+    else:
+        messages.error(request, f"You don't have permission to delete {project_name}.")
+        return redirect('project_view', project_name=project.name, id=project.id)
+    
+def delete_file(request, project_name, id, file_name):
+    project = get_object_or_404(Project, id=id, name=project_name)
+
+    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists():
+        s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+        bucket_name = AWS_STORAGE_BUCKET_NAME
+        file_key = f"{project_name}/{file_name}"
+
+        try:
+            # Delete the file from S3
+            s3.delete_object(Bucket=bucket_name, Key=file_key)
+            messages.success(request, f"File '{file_name}' has been deleted.")
+        except Exception as e:
+            print(f"Error deleting file: {e}")
+            messages.error(request, "An error occurred while trying to delete the file.")
+    else:
+        messages.error(request, "You do not have permission to delete this file.")
+
+    return redirect('project_uploads', project_name=project_name, id=id)

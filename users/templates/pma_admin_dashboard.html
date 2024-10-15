@@ -5,7 +5,11 @@
 {% block content %}
     <h1>Welcome, PMA Administrator!</h1>
     <p>You can manage all projects and files here.</p>
-    <!-- Add admin-specific content here -->
+
+    <div class="mt-4">
+        <h3> View All Projects</h3>
+        <a href="{% url 'project_list' %}" class="custom-btn"> View Projects </a>
+    </div>
 
     <a href="{% url 'logout' %}" class="btn btn-danger mt-4">
         Logout

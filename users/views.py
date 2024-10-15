@@ -97,22 +97,28 @@ from django.shortcuts import render
 from .models import Project
 
 
-@login_required
+
 def project_list(request):
     projects = Project.objects.all()
     project_status = {}
 
-    for project in projects:
-        if request.user in project.members.all():
-            project_status[project.id] = 'member'
-        elif JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists():
-            project_status[project.id] = 'pending'
-        else:
-            project_status[project.id] = 'not_member'
+    # Check if the user is a PMA Administrator
+    is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
+
+    # Only process membership statuses for common users
+    if not is_pma_admin:
+        for project in projects:
+            if request.user in project.members.all():
+                project_status[project.id] = 'member'
+            elif JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists():
+                project_status[project.id] = 'pending'
+            else:
+                project_status[project.id] = 'not_member'
 
     return render(request, 'project_list.html', {
         'projects': projects,
-        'project_status': project_status
+        'project_status': project_status,
+        'is_pma_admin': is_pma_admin, 
     })
 
 

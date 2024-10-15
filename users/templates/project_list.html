@@ -11,22 +11,24 @@
                     {{ project.name }}
 
                     <div>
-                        {% if project.owner == request.user %}
-                            <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-outline-info">Manage
-                                Requests</a>
-                        {% endif %}
-
                         <a href="{% url 'project_view' project.name project.id %}" class="btn btn-outline-info">View</a>
-                        
-                        {% if project_status|dict_key:project.id == 'member' %}
-                            <span class="badge bg-success">Already a member</span>
-                        {% elif project_status|dict_key:project.id == 'pending' %}
-                            <span class="badge bg-warning">Request Pending</span>
-                        {% else %}
-                            <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-primary">Request to Join</button>
-                            </form>
+
+                        {% if not is_pma_admin %}
+                            {% if project.owner == request.user %}
+                                <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-outline-info">Manage
+                                    Requests</a>
+                            {% endif %}
+
+                            {% if project_status|dict_key:project.id == 'member' %}
+                                <span class="badge bg-success">Already a member</span>
+                            {% elif project_status|dict_key:project.id == 'pending' %}
+                                <span class="badge bg-warning">Request Pending</span>
+                            {% else %}
+                                <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary">Request to Join</button>
+                                </form>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </li>
@@ -36,9 +38,7 @@
         <div class="mt-3">
             <a href="{% url 'common_dashboard' %}" class="btn btn-secondary me-2" style="background-color: grey;">Home</a>
         </div>
-        
     {% else %}
         <p>No projects available.</p>
     {% endif %}
 {% endblock %}
-

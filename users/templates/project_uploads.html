@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container mt-4">  
+        <h1>{{ project.name }} - Uploads</h1>
+
+        {% if files %}
+            <ul class="list-group">
+                {% for file in files %}
+                    <li class="list-group-item py-2"> 
+                        {{ file.name }} - 
+                        <a href="{{ file.url }}" download>Download</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No uploads for this project.</p>
+        {% endif %}
+        
+        <a href="{% url 'project_view' project.name project.id %}" class="btn btn-secondary mt-3">Back to Project</a>  <!-- Adds margin-top -->
+    </div>
+{% endblock %}

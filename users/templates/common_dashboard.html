@@ -15,26 +15,6 @@
         <h3> View All Projects</h3>
         <a href="{% url 'project_list' %}" class="custom-btn"> View Projects </a>
     </div>
-    
-    <!-- <h2>Upload a File</h2>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Upload</button>
-    </form> -->
-
-    <div class="upload-section mt-5">
-        <h2 class="mb-4">Upload a File</h2>
-        <form method="post" enctype="multipart/form-data" class="form-inline">
-            {% csrf_token %}
-            <div class="input-group">
-                {{ form.file }}
-                <input type="file" id="fileInput">
-                <button type="button" onclick="document.getElementById('fileInput').click();" class="btn btn-primary" type="submit">Upload</button>
-            </div>
-        </form>
-    </div>
-    <!-- Add common user-specific content here -->
 
     <a href="{% url 'logout' %}" class="btn btn-danger mt-4">
         Logout

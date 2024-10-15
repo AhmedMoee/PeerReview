@@ -14,4 +14,6 @@ urlpatterns = [
     path('deny_request/<int:request_id>/', views.deny_join_request, name='deny_join_request'),
     path('projects/<str:project_name>/<int:id>/', views.view_project, name='project_view'),
     path('projects/<str:project_name>/<int:id>/uploads/', views.project_uploads, name='project_uploads'),
+    path('projects/<str:project_name>/<int:id>/delete/', views.delete_project, name='delete_project'),
+    path('projects/<str:project_name>/<int:id>/delete-file/<str:file_name>/', views.delete_file, name='delete_file'),
 ]

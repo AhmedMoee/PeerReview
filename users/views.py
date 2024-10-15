@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
-from .models import Upload, JoinRequest
+from .models import Upload, JoinRequest, Project
 from .forms import FileUploadForm
 from .forms import ProjectForm
 
@@ -75,7 +75,7 @@ def upload_file(request):
                 print(f'Error uploading file: {e}') 
     else:
         form = FileUploadForm()
-    return render(request, 'upload_file.html', {'form': form})
+    return render(request, 'project_view.html', {'form': form})
 
 @login_required
 def create_project(request):
@@ -86,7 +86,7 @@ def create_project(request):
             project.owner = request.user
             project.save()
             project.members.add(request.user)
-            return redirect('dashboard')
+            return redirect('project_list')
     else:
         form = ProjectForm()
 
@@ -180,3 +180,54 @@ def project_detail(request, project_id):
         'pending_requests': pending_requests,
     })
 
+def project_uploads(request, project_name, id):
+    project = get_object_or_404(Project, id=id)
+    s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+    bucket_name = AWS_STORAGE_BUCKET_NAME
+    prefix = f'{project_name}/'
+
+    try:
+        response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+        files = response.get('Contents', [])
+        
+        file_list = []
+        for file in files:
+            file_key = file['Key']
+            if f"{project.name.lower()}/" in file_key.lower(): 
+                file_list.append({
+                    'name': file['Key'],
+                    'url': f'https://{bucket_name}.s3.amazonaws.com/{file_key}'
+                })
+    except Exception as e:
+        print(f'Error fetching files: {e}')
+        file_list = []
+
+    return render(request, 'project_uploads.html', {'project': project, 'files': file_list})
+
+def view_project(request, project_name, id):
+    project = get_object_or_404(Project, id=id)
+
+    if project.name.lower() != project_name.lower():  
+        return redirect('project_list')
+
+    if request.method == 'POST':
+        form = FileUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            uploaded_file = request.FILES['file']
+            s3 = boto3.client('s3')
+            
+            try:
+                print(f'Uploading {uploaded_file.name} to S3...')
+                s3.upload_fileobj(
+                    uploaded_file,
+                    AWS_STORAGE_BUCKET_NAME,
+                    f'{project_name}/{uploaded_file.name}'
+                )
+                print('Upload successful!')
+                return redirect('project_uploads', project_name=project.name, id=project.id)
+            except Exception as e:
+                print(f'Error uploading file: {e}') 
+    else:
+        form = FileUploadForm()
+
+    return render(request, 'project_view.html', {'project': project, 'form': form})

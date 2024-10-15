@@ -16,7 +16,7 @@ def home(request):
     # Otherwise, render the home page (with the Google login option)
     return render(request, 'home.html')
     
-@login_required
+
 def dashboard(request):
     if request.user.groups.filter(name='PMA Administrators').exists():
         # Render the PMA Administrator dashboard
@@ -106,7 +106,7 @@ def project_list(request):
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
 
     # Only process membership statuses for common users
-    if not is_pma_admin:
+    if request.user.is_authenticated and not is_pma_admin:
         for project in projects:
             if request.user in project.members.all():
                 project_status[project.id] = 'member'
@@ -215,6 +215,9 @@ def view_project(request, project_name, id):
 
     if project.name.lower() != project_name.lower():  
         return redirect('project_list')
+    
+    is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
+
 
     if request.method == 'POST':
         form = FileUploadForm(request.POST, request.FILES)
@@ -236,4 +239,8 @@ def view_project(request, project_name, id):
     else:
         form = FileUploadForm()
 
-    return render(request, 'project_view.html', {'project': project, 'form': form})
+    return render(request, 'project_view.html', {
+        'project': project,
+        'form': form,
+        'is_pma_admin': is_pma_admin
+    })

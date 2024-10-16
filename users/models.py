@@ -33,3 +33,9 @@ class JoinRequest(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.project.name} ({self.status})"
+
+class Message(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content=models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)

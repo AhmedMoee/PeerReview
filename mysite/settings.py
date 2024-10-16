@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'uva-cs-3240-project-b-10-7d152fd5a13
 SITE_ID=4
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -88,23 +89,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
-
+ASGI_APPLICATION = 'mysite.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'postgres://{}:{}@{}:{}/{}'.format(
-            os.getenv('DB_USER'),
-            os.getenv('DB_PASSWORD'),
-            os.getenv('DB_HOST'),
-            os.getenv('DB_PORT'),
-            os.getenv('DB_NAME')
-        )))
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+    # 'default': dj_database_url.config(
+    #     default=os.getenv('DATABASE_URL', 'postgres://{}:{}@{}:{}/{}'.format(
+    #         os.getenv('DB_USER'),
+    #         os.getenv('DB_PASSWORD'),
+    #         os.getenv('DB_HOST'),
+    #         os.getenv('DB_PORT'),
+    #         os.getenv('DB_NAME')
+    #     )))
 }
 
 

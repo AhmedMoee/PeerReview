@@ -2,9 +2,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
-from .models import Upload, JoinRequest, Project
+from .models import Upload, JoinRequest, Project, Message, User
 from .forms import FileUploadForm
 from .forms import ProjectForm
+from typing import AsyncGenerator
+import asyncio
+import json
+import random
+from datetime import datetime
+from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse
 
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
@@ -293,3 +299,67 @@ def delete_file(request, project_name, id, file_name):
         messages.error(request, "You do not have permission to delete this file.")
 
     return redirect('project_uploads', project_name=project_name, id=id)
+
+
+
+def create_message(request, project_id, user_id):
+    if request.method == 'POST':
+        content = request.POST.get('content')
+        if content:
+            user = get_object_or_404(User, id=user_id)
+            project = get_object_or_404(Project, id=project_id)
+            Message.objects.create(content=content, project=project, user=user)
+            return JsonResponse({'status': 'Message sent'})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+def load_messages(request, project_id):
+    messages = Message.objects.filter(project_id=project_id).order_by('created_at')
+    messages_list = [{'content': message.content, 'username':message.user.username} for message in messages]
+    return JsonResponse({'messages': messages_list})
+
+# def create_message(request, id) -> HttpResponse:
+#     content = request.POST.get("content")
+#     user = get_object_or_404(User, request.POST.get("user_id"))
+#     project_id = id
+#     project = get_object_or_404(Project, id=project_id)
+
+#     if content:
+#         Message.objects.create(user=user, content=content, project=project)
+#         return HttpResponse(status=201)
+#     else:
+#         return HttpResponse(status=200)
+
+# async def stream_messages(request: HttpRequest, id) -> StreamingHttpResponse:
+#     project_id = id
+#     async def event_stream():
+#         """
+#         We use this function to send a continuous stream of data 
+#         to the connected clients.
+#         """
+#         async for message in get_existing_messages():
+#             yield message
+
+#         last_id = await get_last_message_id()
+
+#         # Continuously check for new messages
+#         while True:
+#             new_messages = Message.objects.filter(id__gt=last_id, project__id = id).order_by('created_at').values(
+#                 'id', 'user', 'content'
+#             )
+#             async for message in new_messages:
+#                 yield f"data: {json.dumps(message)}\n\n"
+#                 last_id = message['id']
+#             await asyncio.sleep(0.1)  # Adjust sleep time as needed to reduce db queries.
+
+#     async def get_existing_messages() -> AsyncGenerator:
+#         messages = Message.objects.filter(project__id=project_id).order_by('created_at').values(
+#             'id', 'user', 'content'
+#         )
+#         async for message in messages:
+#             yield f"data: {json.dumps(message)}\n\n"
+
+#     async def get_last_message_id() -> int:
+#         last_message = await Message.objects.filter(project__id=project_id).alast()
+#         return last_message.id if last_message else 0
+
+#     return StreamingHttpResponse(event_stream(), content_type='text/event-stream')

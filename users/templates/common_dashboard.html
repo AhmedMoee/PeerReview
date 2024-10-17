@@ -1,16 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Common User Dashboard</title>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %} Common User Dashboard {% endblock %}
+
+{% block content %}
     <h1>Welcome, Common User!</h1>
     <p>You can create and manage your own projects here.</p>
-    <!-- Add common user-specific content here -->
-</body>
-<a href="{% url 'logout' %}">
-    Logout
-</a>
-</html>
+
+    <div class="create-project-section mt-5">
+        <h2>Create a New Project</h2>
+        <a href="{% url 'create_project' %}" class="custom-btn">Create Project</a>
+    </div>
+    
+    <div class="mt-4">
+        <h3> View All Projects</h3>
+        <a href="{% url 'project_list' %}" class="custom-btn"> View Projects </a>
+    </div>
+
+    <a href="{% url 'logout' %}" class="btn btn-danger mt-4">
+        Logout
+    </a>
+{% endblock %}

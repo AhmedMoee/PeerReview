@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>{{ project.name }}</h1>
+
+    {% if user.is_authenticated %}
+        {% if is_pma_admin or user in project.members.all %}
+            <h2 class="h4">Upload File</h2>
+            <form method="post" enctype="multipart/form-data" class="mb-3"> 
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary me-2">Upload</button>
+            </form>
+            <a href="{% url 'project_uploads' project.name project.id %}" class="btn btn-secondary">View Uploads</a>
+
+
+
+
+            <head>
+                <title>Project Chat</title>
+                <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+            </head>
+            <body>
+                <h1>Project Chat</h1>
+                <div id="chat-log"></div>
+                
+                <form id="message-form" method="post" action="{% url 'create_message' project.id user.id %}">
+                    {% csrf_token %}
+                    <textarea id="chat-message-input" name="content" placeholder="Your next message..."></textarea>
+                    <button type="submit">Send</button>
+                </form>
+            
+                <button id="refresh-button">Refresh Messages</button>
+            
+                <script>
+                    function loadMessages() {
+                        $.getJSON('{% url "load_messages" project.id %}', function(data) {
+                            $('#chat-log').empty();
+                            data.messages.forEach(function(message) {
+                                $('#chat-log').append('<div>' + message.username + ': ' + message.content + '</div>');
+                            });
+                        });
+                    }
+            
+                    $(document).ready(function() {
+                        // Initial load of messages
+                        loadMessages();
+            
+                        // Refresh button handler
+                        $('#refresh-button').on('click', function() {
+                            loadMessages();
+                        });
+            
+                        // Form submission handler
+                        $('#message-form').on('submit', function(event) {
+                            event.preventDefault();
+                            const formData = $(this).serialize();
+            
+                            $.post($(this).attr('action'), formData, function(response) {
+                                if (response.status === 'Message sent') {
+                                    $('#chat-message-input').val('');
+                                    loadMessages(); // Reload messages after sending
+                                } else {
+                                    console.error(response.error);
+                                }
+                            });
+                        });
+                    });
+                </script>
+            </body>
+
+
+
+
+
+
+
+
+        {% else %}
+            <p>You are not a member of this project. Please request to join.</p>
+            <form action="{% url 'request_to_join' project.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">Request to Join</button>
+            </form>
+        {% endif %}
+    {% else %}
+        <p>Please Login to view this project.</p>
+        {% load socialaccount %}
+        <h2>Google Login</h2>
+        <a href="{% provider_login_url 'google' %}?next=/" class="btn btn-primary">
+            Login With Google
+        </a>
+    {% endif %}
+
+    <a href="{% url 'project_list' %}" class="btn btn-secondary">Back to Projects</a>
+{% endblock %}

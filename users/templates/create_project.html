@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %} Create Project {% endblock %}
+
+{% block content %}
+    <h1>Create a New Project</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Create Project</button>
+    </form>
+    <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-4">Back to Dashboard</a>
+    
+{% endblock %}

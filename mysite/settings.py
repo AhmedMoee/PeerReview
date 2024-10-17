@@ -24,13 +24,14 @@ load_dotenv()
 SECRET_KEY = 'django-insecure-+!r0i(emln-g5)ous&knffqw2l@b@x26dowy^y50#mm*swjp1)'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'uva-cs-3240-project-b-10-7d152fd5a130.herokuapp.com']
 
 SITE_ID=4
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'django_bootstrap5',
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
@@ -87,7 +89,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
-
+ASGI_APPLICATION = 'mysite.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -159,3 +161,19 @@ SOCIALACCOUNT_ADAPTER = 'users.adapter.MySocialAccountAdapter'
 
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = "/"
+
+# AWS Settings
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_SIGNATURE_NAME = os.getenv('AWS_S3_SIGNATURE_NAME')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
+AWS_DEFAULT_ACL = 'public-read'
+AWS_S3_VERITY = True
+
+# Use S3 as the default file storage backend
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# Make files publicly accessible
+AWS_QUERYSTRING_AUTH = False
+AWS_S3_FILE_OVERWRITE = False

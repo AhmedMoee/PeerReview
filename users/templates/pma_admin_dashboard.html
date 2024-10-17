@@ -1,16 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PMA Administrator Dashboard</title>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %} PMA Administrator Dashboard {% endblock %}
+
+{% block content %}
     <h1>Welcome, PMA Administrator!</h1>
     <p>You can manage all projects and files here.</p>
-    <!-- Add admin-specific content here -->
-</body>
-<a href="{% url 'logout' %}">
-    Logout
-</a>
-</html>
+
+    <div class="mt-4">
+        <h3> View All Projects</h3>
+        <a href="{% url 'project_list' %}" class="custom-btn"> View Projects </a>
+    </div>
+
+    <a href="{% url 'logout' %}" class="btn btn-danger mt-4">
+        Logout
+    </a>
+{% endblock %}

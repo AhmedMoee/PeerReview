@@ -196,6 +196,22 @@ def project_detail(request, project_id):
         'pending_requests': pending_requests,
     })
 
+
+def leave_project(request, project_id, project_name):
+    project = get_object_or_404(Project, id=project_id, name=project_name)
+
+    # check if user is a member of the project
+    if request.user in project.members.all():
+        # # delete join request so they can request again after leaving
+        JoinRequest.objects.filter(user=request.user, project=project).delete()
+        # remove membership
+        project.members.remove(request.user)
+        messages.success(request, 'You have successfully left the project.')
+    else:
+        messages.error(request, 'You are not a member of this project.')
+    return redirect('project_list')
+
+
 def project_uploads(request, project_name, id):
     project = get_object_or_404(Project, id=id)
     s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
@@ -297,8 +313,6 @@ def delete_file(request, project_name, id, file_name):
         messages.error(request, "You do not have permission to delete this file.")
 
     return redirect('project_uploads', project_name=project_name, id=id)
-
-
 
 def create_message(request, project_id, user_id):
     if request.method == 'POST':

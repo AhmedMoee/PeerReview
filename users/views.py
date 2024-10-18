@@ -24,12 +24,19 @@ def home(request):
     
 
 def dashboard(request):
-    if request.user.groups.filter(name='PMA Administrators').exists():
-        # Render the PMA Administrator dashboard
-        return render(request, 'pma_admin_dashboard.html')  
+    if request.user.is_authenticated:
+        # look for first name, if it doesn't exist, use their username
+        user_name = request.user.first_name or request.user.username
+
+        if request.user.groups.filter(name='PMA Administrators').exists():
+            # Render the PMA Administrator dashboard
+            return render(request, 'pma_admin_dashboard.html', {'user_name': user_name})
+        else:
+            # Render the Common User dashboard
+            return render(request, 'common_dashboard.html', {'user_name': user_name})
     else:
-        # Render the Common User dashboard
-        return render(request, 'common_dashboard.html')
+        # if not authenticated, anon user, redirect to home page (with Google login option)
+        return render(request, 'home.html')
 
 def logout_view(request):
     logout(request)

@@ -102,8 +102,6 @@ def create_project(request):
 from django.shortcuts import render
 from .models import Project
 
-
-
 def project_list(request):
     projects = Project.objects.all()
     project_status = {}
@@ -363,3 +361,60 @@ def load_messages(request, project_id):
 #         return last_message.id if last_message else 0
 
 #     return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+
+import mimetypes # https://docs.python.org/3/library/mimetypes.html
+
+def view_file(request, project_name, id, file_name):
+    # get the project based on the project name and ID
+    project = get_object_or_404(Project, id=id, name=project_name)
+
+    is_project_owner = project.owner == request.user
+    is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
+    if request.user in project.members.all():
+        is_project_member = request.user
+
+    # check if the user is the project owner or PMA Administrator or a member of the project
+    if is_project_owner or is_pma_admin or is_project_member:
+        # fetch file from AWS S3
+        s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+        bucket_name = AWS_STORAGE_BUCKET_NAME
+        file_key = f"{project_name}/{file_name}"
+
+        # determine the media type of the file, return type is (type, encoding), ignore encoding
+        mime_type, _ = mimetypes.guess_type(file_name)
+
+        # need to accept .txt, .pdf, .jpg, and other types if desired
+
+        # generate the file's presigned URL for viewing, with correct media type
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-presigned-urls.html
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3/client/generate_presigned_url.html
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3/client/get_object.html
+
+        if mime_type not in ['image/jpeg', 'text/plain', 'application/pdf']:
+            disposition_type = 'attachment'  # to download the file
+        else:
+            disposition_type = 'inline'  # to display the file
+
+        file_url = s3.generate_presigned_url(
+            'get_object',
+            Params={
+                'Bucket': bucket_name,
+                'Key': file_key,
+                # makes sure the browser is able to handle the display the correct media type
+                'ResponseContentType': mime_type,
+                'ResponseContentDisposition': disposition_type
+            },
+            ExpiresIn=3600  # URL expires in 1 hour
+        )
+
+        context = {
+            'file_name': file_name,
+            'file_url': file_url,
+            'project': project,
+        }
+        return render(request, 'view_file.html', context)
+
+    else:
+        # if user doesn't have permission, show an error message
+        messages.error(request, "You don't have permission to view this file.")
+        return redirect('project_view', project_name=project.name, id=project.id)

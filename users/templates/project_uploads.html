@@ -11,7 +11,7 @@
 
         <div>
             <a href="{{ file.url }}" download class="btn btn-outline-info">Download</a>
-
+            
             {% if is_owner_or_admin %}
             <form action="{% url 'delete_file' project.name project.id file.name %}" method="post"
                 class="d-inline-block">
@@ -21,6 +21,7 @@
             {% endif %}
         </div>
     </li>
+    <embed src="{{ file.url }}" type="application/pdf">
     {% endfor %}
 </ul>
 {% else %}

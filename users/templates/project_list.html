@@ -20,7 +20,17 @@
                             {% endif %}
 
                             {% if project_status|dict_key:project.id == 'member' %}
-                                <span class="badge bg-success">Already a member</span>
+                                {% if project.owner == request.user %}
+                                    <span class="badge bg-dark">Owner</span>
+                                {% else %}
+                                    <span class="badge bg-success">Already a member</span>
+                                    {% if project.owner != request.user %}
+                                        <form action="{% url 'leave_project' project.name project.id %}" method="post" class="d-inline-block">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger">Leave</button>
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
                             {% elif project_status|dict_key:project.id == 'pending' %}
                                 <span class="badge bg-warning">Request Pending</span>
                             {% else %}

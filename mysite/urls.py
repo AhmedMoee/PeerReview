@@ -25,4 +25,4 @@ urlpatterns = [
     path('', include('users.urls')),
     path('uploads/all/', upload_list, name='upload_list'),
     path('upload/', upload_file, name='upload_file'),
-]
+    ]

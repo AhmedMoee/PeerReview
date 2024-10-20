@@ -10,8 +10,11 @@
         {{ file.name }}
 
         <div>
-            <a href="{{ file.url }}" download class="btn btn-outline-info">Download</a>
+            <!--view button to open up files-->
+            <a href="{% url 'view_file' project.name project.id file.name %}" class="btn btn-outline-primary">View</a>
 
+            <a href="{{ file.url }}" download class="btn btn-outline-info">Download</a>
+            
             {% if is_owner_or_admin %}
             <form action="{% url 'delete_file' project.name project.id file.name %}" method="post"
                 class="d-inline-block">

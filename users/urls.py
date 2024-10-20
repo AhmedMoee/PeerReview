@@ -18,4 +18,7 @@ urlpatterns = [
     path('projects/<str:project_name>/<int:id>/delete-file/<str:file_name>/', views.delete_file, name='delete_file'),
     path('create-message/<int:project_id>/<int:user_id>/', views.create_message, name='create_message'),
     path('load-messages/<int:project_id>/', views.load_messages, name='load_messages'),
+
+    path('projects/<str:project_name>/<int:id>/view/<str:file_name>/', views.view_file, name='view_file'),
+    path('project/<str:project_name>/<int:project_id>/leave/', views.leave_project, name='leave_project'),
 ]

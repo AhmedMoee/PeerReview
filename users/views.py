@@ -72,9 +72,12 @@ def upload_file(request):
     if request.method == 'POST':
         form = FileUploadForm(request.POST, request.FILES)
         if form.is_valid():
+                              
+            upload_instance = form.save(commit=False)  # Create an instance but don't save yet (wait for form to successfully upload)
+            
             uploaded_file = request.FILES['file']
             s3 = boto3.client('s3')
-            
+
             try:
                 print(f'Uploading {uploaded_file.name} to S3...')
                 s3.upload_fileobj(
@@ -83,6 +86,11 @@ def upload_file(request):
                     f'uploads/{uploaded_file.name}'
                 )
                 print('Upload successful!')
+                
+                # Save the instance to the database
+                upload_instance.file = uploaded_file
+                upload_instance.save()
+                
                 return redirect('upload_list')
             except Exception as e:
                 print(f'Error uploading file: {e}') 

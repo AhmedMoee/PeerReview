@@ -8,7 +8,26 @@
             <h2 class="h4">Upload File</h2>
             <form method="post" enctype="multipart/form-data" class="mb-3"> 
                 {% csrf_token %}
-                {{ form.as_p }}
+                <div class="form-group mb-3">
+                    {{ form.name.label_tag }}
+                    {{ form.name }}
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.description.label_tag }}
+                    {{ form.description }}
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.keywords.label_tag }}
+                    {{ form.keywords }}
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.file.label_tag }}
+                    {{ form.file }}
+                </div>
+                
                 <button type="submit" class="btn btn-primary me-2">Upload</button>
             </form>
         {% endif %}

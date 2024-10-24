@@ -350,7 +350,7 @@ def load_messages(request, project_id):
 
 #     return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
 
-import mimetypes # https://docs.python.org/3/library/mimetypes.html
+import mimetypes  # https://docs.python.org/3/library/mimetypes.html
 
 def view_file(request, project_name, id, file_id):
     # Get the project based on the project name and ID

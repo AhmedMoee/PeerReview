@@ -10,7 +10,7 @@
 
     <div class="col-7">
 
-        {% if "image/jpeg" in file_type %}
+        {% if "image/jpeg" in file_type or "image/png" in file_type %}
             <img src="{{ file_url }}" alt="{{ file_name }}" style="max-width: 100%; height: auto;">
         {% elif "application/pdf" in file_type %}
             <iframe src="{{ file_url }}" width="100%" height="600px"></iframe>

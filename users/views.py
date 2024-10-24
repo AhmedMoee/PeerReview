@@ -53,55 +53,6 @@ def common_dashboard(request):
     
     return render(request, 'common_dashboard.html', {'form': form})
 
-# def upload_list(request):
-#     s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
-#     bucket_name = AWS_STORAGE_BUCKET_NAME
-#     prefix = 'uploads/'
-    
-#     try:
-#         response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
-#         files = response.get('Contents', [])
-#         file_list = [{'name': file['Key'], 'url': f'https://{bucket_name}.s3.amazonaws.com/{file["Key"]}'} for file in files]
-#     except Exception as e:
-#         print(f'Error fetching files: {e}')
-#         file_list = []
-
-#     return render(request, 'upload_list.html', {'files': file_list})
-
-# def upload_file(request):
-#     if request.method == 'POST':
-#         form = FileUploadForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             uploaded_file = request.FILES['file']
-
-#             # Ensure the file object stays open during the upload
-#             uploaded_file.open('rb')  # Open the file explicitly in binary mode
-
-#             s3 = boto3.client('s3')
-#             try:
-#                 print(f'Uploading {uploaded_file.name} to S3...')
-#                 s3.upload_fileobj(
-#                     uploaded_file,  # Upload the file object
-#                     AWS_STORAGE_BUCKET_NAME,
-#                     f'uploads/{uploaded_file.name}'
-#                 )
-#                 print('Upload successful!')
-
-#                 # Save the uploaded file metadata to the database
-#                 upload_instance = form.save(commit=False)
-#                 upload_instance.file = uploaded_file
-#                 upload_instance.save()
-
-#                 return redirect('upload_list')
-#             except Exception as e:
-#                 print(f'Error uploading file: {e}')
-#             finally:
-#                 uploaded_file.close()  # Ensure file is closed after upload
-#     else:
-#         form = FileUploadForm()
-        
-#     return render(request, 'project_view.html', {'form': form})
-
 
 @login_required
 def create_project(request):

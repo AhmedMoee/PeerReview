@@ -397,6 +397,7 @@ def view_file(request, project_name, id, file_id):
         )
 
         context = {
+            'file_type': mime_type,
             'upload_name': upload.name,
             'upload_file': upload.file,
             'file_url': file_url,

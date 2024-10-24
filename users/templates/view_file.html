@@ -10,12 +10,11 @@
 
     <div class="col-7">
 
-        {% if ".jpg" in upload_file or ".jpeg" in upload_file or ".png" in upload_file %}
+        {% if "image/jpeg" in file_type %}
             <img src="{{ file_url }}" alt="{{ file_name }}" style="max-width: 100%; height: auto;">
-        {% elif ".pdf" in upload_file %}
-            <p>PDF file detected: {{ upload_file }}</p>
+        {% elif "application/pdf" in file_type %}
             <iframe src="{{ file_url }}" width="100%" height="600px"></iframe>
-        {% elif ".txt" in upload_file %}
+        {% elif "text/plain" in file_type %}
             <iframe src="{{ file_url }}" width="100%" height="600px"></iframe>
         <!-- add other file types -->
         {% else %}

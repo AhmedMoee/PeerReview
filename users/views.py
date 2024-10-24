@@ -53,50 +53,55 @@ def common_dashboard(request):
     
     return render(request, 'common_dashboard.html', {'form': form})
 
-def upload_list(request):
-    s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
-    bucket_name = AWS_STORAGE_BUCKET_NAME
-    prefix = 'uploads/'
+# def upload_list(request):
+#     s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+#     bucket_name = AWS_STORAGE_BUCKET_NAME
+#     prefix = 'uploads/'
     
-    try:
-        response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
-        files = response.get('Contents', [])
-        file_list = [{'name': file['Key'], 'url': f'https://{bucket_name}.s3.amazonaws.com/{file["Key"]}'} for file in files]
-    except Exception as e:
-        print(f'Error fetching files: {e}')
-        file_list = []
+#     try:
+#         response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+#         files = response.get('Contents', [])
+#         file_list = [{'name': file['Key'], 'url': f'https://{bucket_name}.s3.amazonaws.com/{file["Key"]}'} for file in files]
+#     except Exception as e:
+#         print(f'Error fetching files: {e}')
+#         file_list = []
 
-    return render(request, 'upload_list.html', {'files': file_list})
+#     return render(request, 'upload_list.html', {'files': file_list})
 
-def upload_file(request):
-    if request.method == 'POST':
-        form = FileUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-                              
-            upload_instance = form.save(commit=False)  # Create an instance but don't save yet (wait for form to successfully upload)
-            
-            uploaded_file = request.FILES['file']
-            s3 = boto3.client('s3')
+# def upload_file(request):
+#     if request.method == 'POST':
+#         form = FileUploadForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             uploaded_file = request.FILES['file']
 
-            try:
-                print(f'Uploading {uploaded_file.name} to S3...')
-                s3.upload_fileobj(
-                    uploaded_file,
-                    AWS_STORAGE_BUCKET_NAME,
-                    f'uploads/{uploaded_file.name}'
-                )
-                print('Upload successful!')
-                
-                # Save the instance to the database
-                upload_instance.file = uploaded_file
-                upload_instance.save()
-                
-                return redirect('upload_list')
-            except Exception as e:
-                print(f'Error uploading file: {e}') 
-    else:
-        form = FileUploadForm()
-    return render(request, 'project_view.html', {'form': form})
+#             # Ensure the file object stays open during the upload
+#             uploaded_file.open('rb')  # Open the file explicitly in binary mode
+
+#             s3 = boto3.client('s3')
+#             try:
+#                 print(f'Uploading {uploaded_file.name} to S3...')
+#                 s3.upload_fileobj(
+#                     uploaded_file,  # Upload the file object
+#                     AWS_STORAGE_BUCKET_NAME,
+#                     f'uploads/{uploaded_file.name}'
+#                 )
+#                 print('Upload successful!')
+
+#                 # Save the uploaded file metadata to the database
+#                 upload_instance = form.save(commit=False)
+#                 upload_instance.file = uploaded_file
+#                 upload_instance.save()
+
+#                 return redirect('upload_list')
+#             except Exception as e:
+#                 print(f'Error uploading file: {e}')
+#             finally:
+#                 uploaded_file.close()  # Ensure file is closed after upload
+#     else:
+#         form = FileUploadForm()
+        
+#     return render(request, 'project_view.html', {'form': form})
+
 
 @login_required
 def create_project(request):
@@ -116,6 +121,7 @@ def create_project(request):
 
 from django.shortcuts import render
 from .models import Project
+from django.db.models import Q
 
 def project_list(request):
     projects = Project.objects.all()
@@ -145,7 +151,6 @@ def project_list(request):
         'is_pma_admin': is_pma_admin, 
         'project_permissions': project_permissions
     })
-
 
 def request_to_join(request, project_id):
     project = get_object_or_404(Project, id=project_id)
@@ -229,32 +234,20 @@ def leave_project(request, project_id, project_name):
 
 def project_uploads(request, project_name, id):
     project = get_object_or_404(Project, id=id)
-    s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
-    bucket_name = AWS_STORAGE_BUCKET_NAME
-    prefix = f'{project_name}/'
+    
+    search_query = request.GET.get('search', '')  # Get search query from the URL
 
-    try:
-        response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
-        files = response.get('Contents', [])
-        
-        file_list = []
-        for file in files:
-            file_key = file['Key']
-            if f"{project.name.lower()}/" in file_key.lower(): 
-                file_list.append({
-                    'name': file_key.split('/')[-1],
-                    'url': f'https://{bucket_name}.s3.amazonaws.com/{file_key}'
-                })
-    except Exception as e:
-        print(f'Error fetching files: {e}')
-        file_list = []
+    # Filter uploads associated with the project and search query
+    uploads = Upload.objects.filter(project=project)
+    if search_query:
+        uploads = uploads.filter(Q(name__icontains=search_query) | Q(keywords__icontains=search_query))
 
     is_owner_or_admin = (project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists())
 
     context = {
         'project': project,
-        'files': file_list,
-        'is_owner_or_admin': is_owner_or_admin,  
+        'files': uploads,
+        'is_owner_or_admin': is_owner_or_admin,
     }
 
     return render(request, 'project_uploads.html', context)
@@ -266,7 +259,6 @@ def view_project(request, project_name, id):
         return redirect('project_list')
     
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
-
 
     if request.method == 'POST':
         form = FileUploadForm(request.POST, request.FILES)
@@ -282,9 +274,16 @@ def view_project(request, project_name, id):
                     f'{project_name}/{uploaded_file.name}'
                 )
                 print('Upload successful!')
+
+                # Save metadata to the database
+                new_upload = form.save(commit=False)
+                new_upload.project = project
+                new_upload.file = uploaded_file.name
+                new_upload.save()
+
                 return redirect('project_uploads', project_name=project.name, id=project.id)
             except Exception as e:
-                print(f'Error uploading file: {e}') 
+                print(f'Error uploading file: {e}')
     else:
         form = FileUploadForm()
 
@@ -309,18 +308,27 @@ def delete_project(request, project_name, id):
         messages.error(request, f"You don't have permission to delete {project_name}.")
         return redirect('project_view', project_name=project.name, id=project.id)
     
-def delete_file(request, project_name, id, file_name):
+def delete_file(request, project_name, id, file_id):
     project = get_object_or_404(Project, id=id, name=project_name)
+    file_obj = get_object_or_404(Upload, id=file_id, project=project)
 
+    # Check if the user has permissions to delete the file
     if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists():
         s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
         bucket_name = AWS_STORAGE_BUCKET_NAME
-        file_key = f"{project_name}/{file_name}"
+
+        # Construct the correct S3 file key using the file metadata
+        file_key = f"{project_name}/{file_obj.file}"
 
         try:
             # Delete the file from S3
-            s3.delete_object(Bucket=bucket_name, Key=file_key)
-            messages.success(request, f"File '{file_name}' has been deleted.")
+            response = s3.delete_object(Bucket=bucket_name, Key=file_key)
+            print(f"S3 deletion response: {response}")
+            
+            # Delete the file's metadata from the database
+            file_obj.delete()
+
+            messages.success(request, f"File '{file_obj.name}' has been deleted.")
         except Exception as e:
             print(f"Error deleting file: {e}")
             messages.error(request, "An error occurred while trying to delete the file.")
@@ -393,36 +401,37 @@ def load_messages(request, project_id):
 
 import mimetypes # https://docs.python.org/3/library/mimetypes.html
 
-def view_file(request, project_name, id, file_name):
-    # get the project based on the project name and ID
+def view_file(request, project_name, id, file_id):
+    # Get the project based on the project name and ID
     project = get_object_or_404(Project, id=id, name=project_name)
 
+    # Check user permissions
     is_project_owner = project.owner == request.user
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
-    if request.user in project.members.all():
-        is_project_member = request.user
+    is_project_member = request.user in project.members.all()
 
-    # check if the user is the project owner or PMA Administrator or a member of the project
+    # Get file metadata from the database using file_id
+    upload = get_object_or_404(Upload, id=file_id, project=project)
+
+    # Ensure the user is allowed to view the file
     if is_project_owner or is_pma_admin or is_project_member:
-        # fetch file from AWS S3
+        # Fetch file from AWS S3
         s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
         bucket_name = AWS_STORAGE_BUCKET_NAME
-        file_key = f"{project_name}/{file_name}"
 
-        # determine the media type of the file, return type is (type, encoding), ignore encoding
-        mime_type, _ = mimetypes.guess_type(file_name)
+        # Determine the S3 file key from the file_obj's path
+        file_key = f"{project_name}/{upload.file}"
 
-        # need to accept .txt, .pdf, .jpg, and other types if desired
-
-        # generate the file's presigned URL for viewing, with correct media type
-        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-presigned-urls.html
-        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3/client/generate_presigned_url.html
-        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3/client/get_object.html
+        # Determine the media type of the file
+        mime_type, _ = mimetypes.guess_type(file_key)
+        print(f'MIME type detected: {mime_type}')
 
         if mime_type not in ['image/jpeg', 'text/plain', 'application/pdf']:
             disposition_type = 'attachment'  # to download the file
         else:
             disposition_type = 'inline'  # to display the file
+            
+        print(disposition_type)
 
         file_url = s3.generate_presigned_url(
             'get_object',
@@ -437,13 +446,18 @@ def view_file(request, project_name, id, file_name):
         )
 
         context = {
-            'file_name': file_name,
+            'upload_name': upload.name,
+            'upload_file': upload.file,
             'file_url': file_url,
+            'upload_description': upload.description,
+            'upload_keywords': upload.keywords,
+            'uploaded_at': upload.uploaded_at,
             'project': project,
         }
+        
         return render(request, 'view_file.html', context)
 
     else:
-        # if user doesn't have permission, show an error message
+        # If user doesn't have permission, show an error message
         messages.error(request, "You don't have permission to view this file.")
         return redirect('project_view', project_name=project.name, id=project.id)

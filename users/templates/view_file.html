@@ -34,19 +34,40 @@
     <form method="post">
         {% csrf_token %}
         {{ prompt_form.as_p }}
-        <button type="submit" class="btn btn-primary">Add Prompt</button>
+        <button type="submit" name="add_prompt" class="btn btn-primary">Add Prompt</button>
     </form>
 
-    <!-- Display Prompts -->
+    <!-- Display Prompts and Responses -->
     <h3>Prompts:</h3>
     <ul class="list-group">
         {% for prompt in prompts %}
             <li class="list-group-item">
                 <p><strong>{{ prompt.created_by.username }}:</strong> {{ prompt.content }}</p>
                 <p><small>Posted on: {{ prompt.created_at }}</small></p>
+
+                <!-- Responses to this Prompt -->
+                <h5>Responses:</h5>
+                <ul>
+                    {% for response in prompt.responses.all %}
+                        <li>
+                            <strong>{{ response.created_by.username }}:</strong> {{ response.content }}
+                            <small> - {{ response.created_at }}</small>
+                        </li>
+                    {% empty %}
+                        <li>No responses yet.</li>
+                    {% endfor %}
+                </ul>
+
+                <!-- Add Response Form -->
+                <form method="post" class="mt-2">
+                    {% csrf_token %}
+                    {{ response_form.as_p }}
+                    <input type="hidden" name="prompt_id" value="{{ prompt.id }}">
+                    <button type="submit" name="add_response" class="btn btn-secondary">Add Response</button>
+                </form>
             </li>
         {% empty %}
-            <li class="list-group-item">No prompts available for this file.</li>
+            <li>No prompts available for this file.</li>
         {% endfor %}
     </ul>
 </div>

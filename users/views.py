@@ -352,7 +352,8 @@ def load_messages(request, project_id):
 #     return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
 
 import mimetypes  # https://docs.python.org/3/library/mimetypes.html
-from .forms import PromptForm
+from .forms import PromptForm, PromptResponseForm
+from .models import Prompt
 
 def view_file(request, project_name, id, file_id):
     # Get the project based on the project name and ID
@@ -365,6 +366,9 @@ def view_file(request, project_name, id, file_id):
 
     # Get file metadata from the database using file_id
     upload = get_object_or_404(Upload, id=file_id, project=project)
+    
+    # Retrieve prompts and their responses
+    prompts = upload.prompts.all()  # Retrieve all prompts related to this upload
 
     # Ensure the user is allowed to view the file
     if is_project_owner or is_pma_admin or is_project_member:
@@ -377,14 +381,12 @@ def view_file(request, project_name, id, file_id):
 
         # Determine the media type of the file
         mime_type, _ = mimetypes.guess_type(file_key)
-        print(f'MIME type detected: {mime_type}')
 
         if mime_type not in ['image/jpeg', 'text/plain', 'application/pdf']:
             disposition_type = 'attachment'  # to download the file
         else:
             disposition_type = 'inline'  # to display the file
             
-        print(disposition_type)
 
         file_url = s3.generate_presigned_url(
             'get_object',
@@ -399,7 +401,7 @@ def view_file(request, project_name, id, file_id):
         )
         
         # Handle prompt form submission
-        if request.method == 'POST':
+        if request.method == 'POST' and 'add_prompt' in request.POST:
             prompt_form = PromptForm(request.POST)
             if prompt_form.is_valid():
                 new_prompt = prompt_form.save(commit=False)
@@ -407,25 +409,39 @@ def view_file(request, project_name, id, file_id):
                 new_prompt.created_by = request.user
                 new_prompt.save()
                 return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
-            else:
-                return HttpResponseBadRequest("Invalid form submission.")
+        
+        # Handle response form submission
+        elif request.method == 'POST' and 'add_response' in request.POST:
+            response_form = PromptResponseForm(request.POST)
+            if response_form.is_valid():
+                # Retrieve the prompt instance
+                prompt_id = request.POST.get("prompt_id")
+                prompt = get_object_or_404(Prompt, id=prompt_id)
+
+                # Save the new response
+                new_response = response_form.save(commit=False)
+                new_response.prompt = prompt
+                new_response.created_by = request.user
+                new_response.save()
+                
+                return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
+
         else:
             prompt_form = PromptForm()
-            
-        prompts = upload.prompts.all()
-
+            response_form = PromptResponseForm()
 
         context = {
-            'file_type': mime_type,
+            'file_type': mimetypes.guess_type(upload.file.name)[0],
             'upload_name': upload.name,
             'upload_file': upload.file,
-            'file_url': file_url,
+            'file_url': file_url,  # Replace with actual presigned URL generation
             'upload_description': upload.description,
             'upload_keywords': upload.keywords,
             'uploaded_at': upload.uploaded_at,
             'project': project,
             'prompt_form': prompt_form,
-            'prompts': prompts
+            'response_form': response_form,
+            'prompts': prompts,
         }
         
         return render(request, 'view_file.html', context)

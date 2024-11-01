@@ -41,3 +41,15 @@ class Message(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     content=models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    
+class Prompt(models.Model):
+    upload = models.ForeignKey(Upload, on_delete=models.CASCADE, related_name='prompts')
+    content = models.TextField()
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class PromptResponse(models.Model):
+    prompt = models.ForeignKey(Prompt, on_delete=models.CASCADE, related_name='responses')
+    content = models.TextField()
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)

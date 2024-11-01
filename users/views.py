@@ -11,6 +11,7 @@ import json
 import random
 from datetime import datetime
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse
+from django.http import HttpResponseBadRequest
 
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
@@ -351,6 +352,7 @@ def load_messages(request, project_id):
 #     return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
 
 import mimetypes  # https://docs.python.org/3/library/mimetypes.html
+from .forms import PromptForm
 
 def view_file(request, project_name, id, file_id):
     # Get the project based on the project name and ID
@@ -395,6 +397,23 @@ def view_file(request, project_name, id, file_id):
             },
             ExpiresIn=3600  # URL expires in 1 hour
         )
+        
+        # Handle prompt form submission
+        if request.method == 'POST':
+            prompt_form = PromptForm(request.POST)
+            if prompt_form.is_valid():
+                new_prompt = prompt_form.save(commit=False)
+                new_prompt.upload = upload
+                new_prompt.created_by = request.user
+                new_prompt.save()
+                return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
+            else:
+                return HttpResponseBadRequest("Invalid form submission.")
+        else:
+            prompt_form = PromptForm()
+            
+        prompts = upload.prompts.all()
+
 
         context = {
             'file_type': mime_type,
@@ -405,6 +424,8 @@ def view_file(request, project_name, id, file_id):
             'upload_keywords': upload.keywords,
             'uploaded_at': upload.uploaded_at,
             'project': project,
+            'prompt_form': prompt_form,
+            'prompts': prompts
         }
         
         return render(request, 'view_file.html', context)

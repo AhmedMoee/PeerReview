@@ -29,6 +29,26 @@
         <p><strong>Keywords:</strong> {{ upload_keywords }}</p>
         <p><strong>Uploaded At:</strong> {{ uploaded_at }}</p>
     </div>
+
+    <!-- Add Prompt Form -->
+    <form method="post">
+        {% csrf_token %}
+        {{ prompt_form.as_p }}
+        <button type="submit" class="btn btn-primary">Add Prompt</button>
+    </form>
+
+    <!-- Display Prompts -->
+    <h3>Prompts:</h3>
+    <ul class="list-group">
+        {% for prompt in prompts %}
+            <li class="list-group-item">
+                <p><strong>{{ prompt.created_by.username }}:</strong> {{ prompt.content }}</p>
+                <p><small>Posted on: {{ prompt.created_at }}</small></p>
+            </li>
+        {% empty %}
+            <li class="list-group-item">No prompts available for this file.</li>
+        {% endfor %}
+    </ul>
 </div>
 
 <a href="{% url 'project_uploads' project.name project.id %}" class="btn btn-secondary mt-3">Back to Uploads</a>

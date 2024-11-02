@@ -20,7 +20,12 @@ class PromptForm(forms.ModelForm):
         model = Prompt
         fields = ['content']
         widgets = {
-            'content': forms.Textarea(attrs={'placeholder': 'Enter your prompt here...'}),
+            'content': forms.Textarea(attrs={
+                'placeholder': 'Write your prompt here...',
+                'rows': 3,   # Adjust the number of rows as needed
+                'cols': 50,  # Adjust the number of columns as needed
+                'style': 'width: 100%; max-width: 100%;',  # Ensures it’s responsive
+            }),
         }
 
 class PromptResponseForm(forms.ModelForm):
@@ -28,5 +33,10 @@ class PromptResponseForm(forms.ModelForm):
         model = PromptResponse
         fields = ['content']
         widgets = {
-            'content': forms.Textarea(attrs={'placeholder': 'Enter your response here...'}),
+            'content': forms.Textarea(attrs={
+                'placeholder': 'Write your response...',
+                'rows': 5,   # Adjust the number of rows as needed
+                'cols': 80,  # Adjust the number of columns as needed
+                'style': 'width: 100%; max-width: 100%;',  # Ensures it’s responsive
+            }),
         }

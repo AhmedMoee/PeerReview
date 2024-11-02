@@ -3,25 +3,25 @@
 {% block content %}
 <h1>Viewing File: {{ upload_name }}</h1>
 
+<div class="col-lg-4">
+    <h3>File Details</h3>
+    <p><strong>Title:</strong> {{ upload_name }}</p>
+    <p><strong>Description:</strong> {{ upload_description }}</p>
+    <p><strong>Keywords:</strong> {{ upload_keywords }}</p>
+    <p><strong>Uploaded At:</strong> {{ uploaded_at }}</p>
+</div>
+
 <div class="row">
     <div class="col-lg-8">
         {% if "image/jpeg" in file_type or "image/png" in file_type %}
             <img src="{{ file_url }}" alt="{{ upload_name }}" style="max-width: 100%; height: auto;">
         {% elif "application/pdf" in file_type %}
-            <iframe src="{{ file_url }}" width="100%" height="600px"></iframe>
+            <iframe src="{{ file_url }}" width="100%" height="800px"></iframe>
         {% elif "text/plain" in file_type %}
             <iframe src="{{ file_url }}" width="100%" height="600px"></iframe>
         {% else %}
             <p>This file type cannot be displayed directly. You can <a href="{{ file_url }}" download>download it here</a>.</p>
         {% endif %}
-    </div>
-
-    <div class="col-lg-4">
-        <h3>File Details</h3>
-        <p><strong>Title:</strong> {{ upload_name }}</p>
-        <p><strong>Description:</strong> {{ upload_description }}</p>
-        <p><strong>Keywords:</strong> {{ upload_keywords }}</p>
-        <p><strong>Uploaded At:</strong> {{ uploaded_at }}</p>
     </div>
 </div>
 
@@ -62,13 +62,13 @@
                     </ul>
 
                     <!-- Add Response Form -->
-                    <form method="post" class="mt-2 d-flex align-items-center" style="max-width: 500px;">
+                    <form method="post" class="mt-2 d-flex align-items-bottom" style="max-width: 500px;">
                         {% csrf_token %}
                         <div class="me-2 flex-grow-1">
                             {{ response_form.content }}
                         </div>
                         <input type="hidden" name="prompt_id" value="{{ prompt.id }}">
-                        <button type="submit" name="add_response" class="btn btn-secondary btn-sm" style="width: auto;">Reply</button>
+                        <button type="submit" name="add_response" class="btn btn-secondary btn-sm" style="width: auto; height: 30px">Reply</button>
                     </form>
                 </div>
             </div>

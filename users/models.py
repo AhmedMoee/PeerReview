@@ -39,7 +39,7 @@ class Project(models.Model):
 
     @property
     def current_reviewers_count(self):
-        return self.members.count()
+        return self.members.count() - 1
 
     def __str__(self):
         return self.name

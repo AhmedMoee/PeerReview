@@ -102,11 +102,14 @@ def project_list(request):
             Q(category__icontains=search_query)
         )
 
-
     visible_projects = []
+    project_status = {}
+    
     for project in projects:
+        # Check visibility conditions
         if not project.is_private or project.owner == request.user or request.user in project.members.all() or is_pma_admin:
             visible_projects.append(project)
+            
             if request.user.is_authenticated and not is_pma_admin:
                 if request.user in project.members.all():
                     project_status[project.id] = 'member'
@@ -114,11 +117,14 @@ def project_list(request):
                     project_status[project.id] = 'pending'
                 else:
                     project_status[project.id] = 'not_member'
-
-    project_permissions = {project.id: project.owner == request.user or is_pma_admin for project in visible_projects}
+    
+    project_permissions = {
+        project.id: project.owner == request.user or is_pma_admin 
+        for project in visible_projects
+    }
 
     return render(request, 'project_list.html', {
-        'projects': projects,
+        'projects': visible_projects,  
         'sort_by': sort_by,
         'project_status': project_status,
         'is_pma_admin': is_pma_admin, 

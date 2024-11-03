@@ -15,9 +15,22 @@
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data" class="mb-3">
                         {% csrf_token %}
+                        <!-- Display Non-field Errors -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Display Name Field with Error Handling -->
                         <div class="form-group mb-3">
                             {{ form.name.label_tag }}
                             {{ form.name|add_class:"form-control" }}
+                            {% if form.name.errors %}
+                                <div class="text-danger">
+                                    {{ form.name.errors|join:", " }}
+                                </div>
+                            {% endif %}
                         </div>
                        
                         <div class="form-group mb-3">

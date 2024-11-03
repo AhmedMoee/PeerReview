@@ -7,6 +7,23 @@ class FileUploadForm(forms.ModelForm):
     class Meta:
         model = Upload
         fields = ['name', 'file', 'description', 'keywords']
+    
+    def __init__(self, *args, **kwargs):
+        self.project = kwargs.pop('project', None)  # Pass project from view to the form
+        super(FileUploadForm, self).__init__(*args, **kwargs)
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        
+        # Ensure 'project' is provided
+        if not self.project:
+            raise forms.ValidationError("Project is required to validate uniqueness.")
+
+        # Check if a file with the same name exists in the project
+        if Upload.objects.filter(name=name, project=self.project).exists():
+            raise forms.ValidationError("An upload with this name already exists in the project.")
+        
+        return name
 
 class ProjectForm(forms.ModelForm):
     class Meta:

@@ -231,7 +231,7 @@ def view_project(request, project_name, id):
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
 
     if request.method == 'POST':
-        form = FileUploadForm(request.POST, request.FILES)
+        form = FileUploadForm(request.POST, request.FILES, project=project)
         if form.is_valid():
             uploaded_file = request.FILES['file']
             s3 = boto3.client('s3')

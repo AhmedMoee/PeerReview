@@ -3,29 +3,59 @@
 {% block content %}
     <h1>{{ project.name }}</h1>
 
+    <!-- Section to view Rubric and Review Guidelines -->
+    {% if project.rubric %}
+        <p><strong>Rubric:</strong> <a href="{{ project.rubric.url }}" target="_blank">Download Rubric</a></p>
+    {% else %}
+        <p><strong>Rubric:</strong> Not uploaded yet.</p>
+    {% endif %}
+
+    {% if project.review_guidelines %}
+        <p><strong>Review Guidelines:</strong> <a href="{{ project.review_guidelines.url }}" target="_blank">Download Guidelines</a></p>
+    {% else %}
+        <p><strong>Review Guidelines:</strong> Not uploaded yet.</p>
+    {% endif %}
+
+    <!-- Form to upload or update Rubric and Review Guidelines -->
+    {% if user == project.owner %}
+        <h3>Upload Rubric or Review Guidelines</h3>
+        <form method="post" enctype="multipart/form-data" class="mb-4">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_rubric">Upload Rubric:</label>
+                <input type="file" name="rubric" id="id_rubric" class="form-control mb-2" />
+            </div>
+            <div class="form-group">
+                <label for="id_review_guidelines">Upload Review Guidelines:</label>
+                <input type="file" name="review_guidelines" id="id_review_guidelines" class="form-control mb-2" />
+            </div>
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </form>
+    {% endif %}
+
     {% if user.is_authenticated %}
         {% if user in project.members.all %}
-            <h2 class="h4">Upload File</h2>
-            <form method="post" enctype="multipart/form-data" class="mb-3"> 
+            <h3 class="h4">Upload General File</h3>
+            <form method="post" enctype="multipart/form-data" class="mb-4">
                 {% csrf_token %}
-                <div class="form-group mb-3">
-                    {{ form.name.label_tag }}
-                    {{ form.name }}
+                <div class="form-group">
+                    <label for="id_name">File Name:</label>
+                    <input type="text" name="name" id="id_name" class="form-control mb-2">
                 </div>
                 
-                <div class="form-group mb-3">
-                    {{ form.description.label_tag }}
-                    {{ form.description }}
+                <div class="form-group">
+                    <label for="id_description">Description:</label>
+                    <textarea name="description" id="id_description" class="form-control mb-2"></textarea>
                 </div>
                 
-                <div class="form-group mb-3">
-                    {{ form.keywords.label_tag }}
-                    {{ form.keywords }}
+                <div class="form-group">
+                    <label for="id_keywords">Keywords:</label>
+                    <input type="text" name="keywords" id="id_keywords" class="form-control mb-2">
                 </div>
                 
-                <div class="form-group mb-3">
-                    {{ form.file.label_tag }}
-                    {{ form.file }}
+                <div class="form-group">
+                    <label for="id_file">Upload File:</label>
+                    <input type="file" name="file" id="id_file" class="form-control mb-2">
                 </div>
                 
                 <button type="submit" class="btn btn-primary me-2">Upload</button>

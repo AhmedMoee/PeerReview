@@ -2,10 +2,37 @@ from django.db import models
 from django.utils.timezone import now
 from django.contrib.auth.models import User
 
+CATEGORIES = (
+     ('ARCHITECTURE', 'Architecture'),
+    ('ARTWORK', 'Artwork'),
+    ('BIOLOGY', 'Biology'),
+    ('BUSINESS', 'Business'),
+    ('CHEMISTRY', 'Chemistry'),
+    ('ECONOMICS', 'Economics'),
+    ('ENGINEERING', 'Engineering'),
+    ('ENGLISH', 'English Literature'),
+    ('HISTORY', 'History'),
+    ('LAW', 'Law'),
+    ('MATH', 'Math'),
+    ('MEDICINE', 'Medicine'),
+    ('MUSIC', 'Music'),
+    ('PHILOSOPHY', 'Philosophy'),
+    ('PHYSICS', 'Physics'),
+    ('POLITICS', 'Politics'),
+    ('PSYCHOLOGY', 'Psychology'),
+    ('SCIENCE', 'Science'),
+    ('SOCIOLOGY', 'Sociology'),
+    ('SOFTWARE', 'Software Development'),
+    ('OTHER', 'Other')
+
+)
 class Project(models.Model):
     name = models.CharField(max_length=100)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_projects')
     members = models.ManyToManyField(User, related_name='projects', blank=True)
+    category = models.CharField(max_length=100, choices=CATEGORIES, default='OTHER')
+    due_date = models.DateField(blank=True, null = True)
+    description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     rubric = models.FileField(upload_to='rubrics/', blank=True, null=True)
     review_guidelines = models.FileField(upload_to='review_guidelines/', blank=True, null=True)

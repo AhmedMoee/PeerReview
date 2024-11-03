@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, F
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse, HttpResponseBadRequest
 from .models import Upload, JoinRequest, Project, Message, User, UserProfile
 from .forms import FileUploadForm, ProjectForm, UserProfileForm
@@ -76,6 +76,23 @@ def project_list(request):
 
     # Check if the user is a PMA Administrator
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
+    sort_by = request.GET.get('sort', '-created_at')
+    if sort_by == 'due_date' :
+        project = projects.order_by(F('due_date').asc(nulls_last=True))
+    elif sort_by == '-due_date':
+        projects = projects.order_by('-due_date')
+    elif sort_by == 'created_at' :
+        projects = projects.order_by('created_at')
+    elif sort_by == '-created_at' :
+        projects = projects.order_by('-created_at')
+
+    search_query = request.GET.get('q', '')
+    if search_query:
+        projects = projects.filter(
+            Q(description__icontains=search_query) |
+            Q(category__icontains=search_query)
+        )
+
 
     # Only process membership statuses for common users
     if request.user.is_authenticated and not is_pma_admin:
@@ -94,6 +111,7 @@ def project_list(request):
 
     return render(request, 'project_list.html', {
         'projects': projects,
+        'sort_by': sort_by,
         'project_status': project_status,
         'is_pma_admin': is_pma_admin, 
         'project_permissions': project_permissions

@@ -34,6 +34,12 @@ class Project(models.Model):
     due_date = models.DateField(blank=True, null = True)
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    number_of_reviewers = models.PositiveIntegerField(default=1)
+    is_private = models.BooleanField(default=False)
+
+    @property
+    def current_reviewers_count(self):
+        return self.members.count()
 
     def __str__(self):
         return self.name

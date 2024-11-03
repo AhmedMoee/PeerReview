@@ -103,20 +103,19 @@ def project_list(request):
         )
 
 
-    # Only process membership statuses for common users
-    if request.user.is_authenticated and not is_pma_admin:
-        for project in projects:
-            if request.user in project.members.all():
-                project_status[project.id] = 'member'
-            elif JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists():
-                project_status[project.id] = 'pending'
-            else:
-                project_status[project.id] = 'not_member'
-
-    project_permissions = {}
+    visible_projects = []
     for project in projects:
-        is_owner = project.owner == request.user
-        project_permissions[project.id] = is_owner or is_pma_admin
+        if not project.is_private or project.owner == request.user or request.user in project.members.all() or is_pma_admin:
+            visible_projects.append(project)
+            if request.user.is_authenticated and not is_pma_admin:
+                if request.user in project.members.all():
+                    project_status[project.id] = 'member'
+                elif JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists():
+                    project_status[project.id] = 'pending'
+                else:
+                    project_status[project.id] = 'not_member'
+
+    project_permissions = {project.id: project.owner == request.user or is_pma_admin for project in visible_projects}
 
     return render(request, 'project_list.html', {
         'projects': projects,

@@ -11,9 +11,15 @@ class FileUploadForm(forms.ModelForm):
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ['name', 'description', 'due_date', 'category']
+        fields = ['name', 'description', 'due_date', 'category', 'number_of_reviewers', 'is_private']
+        labels = {
+            'number_of_reviewers': 'Number of Reviewers',
+            'is_private': 'Private Project',
+        }
         widgets = {
-            'due_date': forms.DateInput(attrs={'type': 'date'})
+            'due_date': forms.DateInput(attrs={'type': 'date'}),
+            'number_of_reviewers': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_private': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         
 

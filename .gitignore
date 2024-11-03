@@ -11,11 +11,15 @@ media
 
 # If you are using PyCharm # 
 # User-specific stuff
+.idea/
 .idea/**/workspace.xml
 .idea/**/tasks.xml
 .idea/**/usage.statistics.xml
 .idea/**/dictionaries
 .idea/**/shelf
+
+# Ignore macOS system files
+.DS_Store
 
 # AWS User-specific
 .idea/**/aws.xml
@@ -103,7 +107,8 @@ env/
 venv/ 
 ENV/ 
 env.bak/ 
-venv.bak/ 
+venv.bak/
+myenv/
 
 # mkdocs documentation 
 /site 

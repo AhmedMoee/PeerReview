@@ -45,9 +45,12 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'django_bootstrap5',
+    'widget_tweaks',
+    'storages'
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
+    
     "google": {
         "SCOPE": [
             'profile',
@@ -107,6 +110,11 @@ DATABASES = {
             os.getenv('DB_NAME')
         )))
 }
+if os.getenv('TESTING'):
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',  # Path to your SQLite database file
+    }
 
 
 # Password validation

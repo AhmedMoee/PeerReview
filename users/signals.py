@@ -10,7 +10,9 @@ from .models import UserProfile
 def assign_group(sender, request, user, **kwargs):
     common_user_group, created = Group.objects.get_or_create(name='Common Users')
     user.groups.add(common_user_group)
-    UserProfile.objects.create(user=user)
+
+    # Check if UserProfile already exists
+    UserProfile.objects.get_or_create(user=user)
 
 
 @receiver(post_save, sender=User)

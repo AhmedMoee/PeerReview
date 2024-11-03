@@ -1,0 +1,47 @@
+<!-- templates/view_profile.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ request.user.username }}'s Profile</h1>
+
+<div class="profile-info">
+    <h3>About Me</h3>
+    <p>{{ profile.bio }}</p>
+
+    <h3>Specializations</h3>
+    <p>{{ profile.specializations }}</p>
+
+    <h3>Projects Involved</h3>
+    <ul>
+        {% for project in projects %}
+            <li>{{ project.name }}</li>
+        {% empty %}
+            <li>You are not part of any projects yet.</li>
+        {% endfor %}
+    </ul>
+
+
+    <h3>Social Links</h3>
+    <ul>
+        {% if profile.linkedin %}
+            <li><a href="{{ profile.linkedin }}" target="_blank">LinkedIn</a></li>
+        {% endif %}
+        {% if profile.github %}
+            <li><a href="{{ profile.github }}" target="_blank">GitHub</a></li>
+        {% endif %}
+        {% if profile.twitter %}
+            <li><a href="{{ profile.twitter }}" target="_blank">Twitter</a></li>
+        {% endif %}
+    </ul>
+</div>
+
+<h2>Update Profile</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+</form>
+
+<a href="{% url 'common_dashboard' %}" class="btn btn-secondary mt-3">Home</a>
+{% endblock %}

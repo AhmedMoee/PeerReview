@@ -16,13 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from users.views import upload_list, upload_file
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # path('', include('googleauthentication.urls')),
     path('accounts/', include('allauth.urls')),
     path('', include('users.urls')),
-    path('uploads/all/', upload_list, name='upload_list'),
-    path('upload/', upload_file, name='upload_file'),
     ]

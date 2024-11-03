@@ -3,11 +3,9 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse
-from django.http import HttpResponseBadRequest
-from .models import Upload, JoinRequest, Project, Message, User
-from .forms import FileUploadForm
-from .forms import ProjectForm
+from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse, HttpResponseBadRequest
+from .models import Upload, JoinRequest, Project, Message, User, UserProfile
+from .forms import FileUploadForm, ProjectForm, UserProfileForm
 from typing import AsyncGenerator
 import asyncio
 import json
@@ -459,3 +457,19 @@ def view_file(request, project_name, id, file_id):
         # If user doesn't have permission, show an error message
         messages.error(request, "You don't have permission to view this file.")
         return redirect('project_view', project_name=project.name, id=project.id)
+
+
+@login_required
+def view_profile(request):
+    profile = get_object_or_404(UserProfile, user=request.user)
+    projects = Project.objects.filter(Q(owner=request.user) | Q(members=request.user)).distinct()
+
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            return redirect('view_profile')
+    else:
+        form = UserProfileForm(instance=profile)
+
+    return render(request, 'view_profile.html', {'form': form, 'profile': profile, 'projects': projects})

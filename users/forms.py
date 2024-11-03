@@ -1,6 +1,6 @@
 from django import forms
 from .models import Upload
-from .models import Project, Prompt, PromptResponse
+from .models import Project, Prompt, PromptResponse, UserProfile
 
 
 class FileUploadForm(forms.ModelForm):
@@ -40,3 +40,8 @@ class PromptResponseForm(forms.ModelForm):
                 'style': 'width: 100%; max-width: 100%;',  # Ensures it’s responsive
             }),
         }
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ['bio', 'specializations', 'linkedin', 'github', 'twitter']

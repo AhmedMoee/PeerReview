@@ -2,16 +2,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
-from .models import Upload, JoinRequest, Project, Message, User
-from .forms import FileUploadForm
-from .forms import ProjectForm
+from django.db.models import Q, F
+from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse, HttpResponseBadRequest
+from .models import Upload, JoinRequest, Project, Message, User, UserProfile
+from .forms import FileUploadForm, ProjectForm, UserProfileForm
 from typing import AsyncGenerator
 import asyncio
 import json
 import random
 from datetime import datetime
-from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse
-from django.http import HttpResponseBadRequest
 
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
@@ -62,7 +61,7 @@ def common_dashboard(request):
 @login_required
 def create_project(request):
     if request.method == 'POST':
-        form = ProjectForm(request.POST)
+        form = ProjectForm(request.POST, request.FILES)
         if form.is_valid():
             project = form.save(commit=False)
             project.owner = request.user
@@ -74,10 +73,6 @@ def create_project(request):
 
     return render(request, 'create_project.html', {'form': form})
 
-
-from django.shortcuts import render
-from .models import Project
-from django.db.models import Q, F
 
 def project_list(request):
     projects = Project.objects.all()
@@ -94,11 +89,11 @@ def project_list(request):
         projects = projects.order_by('created_at')
     elif sort_by == '-created_at' :
         projects = projects.order_by('-created_at')
-    
+
     search_query = request.GET.get('q', '')
     if search_query:
         projects = projects.filter(
-            Q(description__icontains=search_query) | 
+            Q(description__icontains=search_query) |
             Q(category__icontains=search_query)
         )
 
@@ -182,6 +177,7 @@ def deny_join_request(request, request_id):
 
     return redirect('manage_join_requests', project_id=join_request.project.id)
 
+
 def project_detail(request, project_id):
     project = get_object_or_404(Project, id=project_id)
 
@@ -190,10 +186,12 @@ def project_detail(request, project_id):
     else:
         pending_requests = None
 
-    return render(request, 'project_detail.html', {
+    context = {
         'project': project,
         'pending_requests': pending_requests,
-    })
+    }
+
+    return render(request, 'project_detail.html', context)
 
 
 def leave_project(request, project_id, project_name):
@@ -240,7 +238,16 @@ def view_project(request, project_name, id):
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
 
     if request.method == 'POST':
-        form = FileUploadForm(request.POST, request.FILES)
+        if request.user == project.owner:
+            # Rubric and Review Guidelines uploads
+            if 'rubric' in request.FILES:
+                project.rubric = request.FILES['rubric']
+            if 'review_guidelines' in request.FILES:
+                project.review_guidelines = request.FILES['review_guidelines']
+            project.save()
+
+        # General File Upload
+        form = FileUploadForm(request.POST, request.FILES, project=project)
         if form.is_valid():
             uploaded_file = request.FILES['file']
             s3 = boto3.client('s3')
@@ -493,3 +500,19 @@ def view_file(request, project_name, id, file_id):
         # If user doesn't have permission, show an error message
         messages.error(request, "You don't have permission to view this file.")
         return redirect('project_view', project_name=project.name, id=project.id)
+
+
+@login_required
+def view_profile(request):
+    profile = get_object_or_404(UserProfile, user=request.user)
+    projects = Project.objects.filter(Q(owner=request.user) | Q(members=request.user)).distinct()
+
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            return redirect('view_profile')
+    else:
+        form = UserProfileForm(instance=profile)
+
+    return render(request, 'view_profile.html', {'form': form, 'profile': profile, 'projects': projects})

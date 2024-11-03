@@ -40,6 +40,8 @@ class Project(models.Model):
     @property
     def current_reviewers_count(self):
         return self.members.count() - 1
+    rubric = models.FileField(upload_to='rubrics/', blank=True, null=True)
+    review_guidelines = models.FileField(upload_to='review_guidelines/', blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -49,8 +51,13 @@ class Upload(models.Model):
     file = models.FileField(upload_to='uploads/')
     uploaded_at = models.DateTimeField(default=now)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='uploads')
-    description = models.TextField(blank=True, null=True)  # For requirements change
-    keywords = models.CharField(max_length=200, blank=True, null=True)  # For requirements change
+    description = models.TextField(blank=True, null=True)
+    keywords = models.CharField(max_length=200, blank=True, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['name', 'project'], name='unique_upload_name_per_project')
+        ]
 
     def __str__(self):
         return self.file.name
@@ -86,3 +93,14 @@ class PromptResponse(models.Model):
     content = models.TextField()
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    bio = models.TextField(blank=True, null=True)
+    specializations = models.CharField(max_length=200, blank=True, null=True)
+    linkedin = models.URLField(max_length=200, blank=True, null=True)
+    github = models.URLField(max_length=200, blank=True, null=True)
+    twitter = models.URLField(max_length=200, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s Profile"

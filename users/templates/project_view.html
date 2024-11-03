@@ -5,6 +5,36 @@
     <h1 class="mb-4">{{ project.name }}</h1>
 
 
+    <!-- Section to view Rubric and Review Guidelines -->
+    {% if project.rubric %}
+        <p><strong>Rubric:</strong> <a href="{{ project.rubric.url }}" target="_blank">Download Rubric</a></p>
+    {% else %}
+        <p><strong>Rubric:</strong> Not uploaded yet.</p>
+    {% endif %}
+
+    {% if project.review_guidelines %}
+        <p><strong>Review Guidelines:</strong> <a href="{{ project.review_guidelines.url }}" target="_blank">Download Guidelines</a></p>
+    {% else %}
+        <p><strong>Review Guidelines:</strong> Not uploaded yet.</p>
+    {% endif %}
+
+    <!-- Form to upload or update Rubric and Review Guidelines -->
+    {% if user == project.owner %}
+        <h3>Upload Rubric or Review Guidelines</h3>
+        <form method="post" enctype="multipart/form-data" class="mb-4">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_rubric">Upload Rubric:</label>
+                <input type="file" name="rubric" id="id_rubric" class="form-control mb-2" />
+            </div>
+            <div class="form-group">
+                <label for="id_review_guidelines">Upload Review Guidelines:</label>
+                <input type="file" name="review_guidelines" id="id_review_guidelines" class="form-control mb-2" />
+            </div>
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </form>
+    {% endif %}
+
     {% if user.is_authenticated %}
         {% if user in project.members.all %}
             <!-- File Upload Section -->
@@ -15,26 +45,39 @@
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data" class="mb-3">
                         {% csrf_token %}
+                        <!-- Display Non-field Errors -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Display Name Field with Error Handling -->
                         <div class="form-group mb-3">
                             {{ form.name.label_tag }}
                             {{ form.name|add_class:"form-control" }}
+                            {% if form.name.errors %}
+                                <div class="text-danger">
+                                    {{ form.name.errors|join:", " }}
+                                </div>
+                            {% endif %}
                         </div>
-                       
+
                         <div class="form-group mb-3">
                             {{ form.description.label_tag }}
                             {{ form.description|add_class:"form-control" }}
                         </div>
-                       
+
                         <div class="form-group mb-3">
                             {{ form.keywords.label_tag }}
                             {{ form.keywords|add_class:"form-control" }}
                         </div>
-                       
+
                         <div class="form-group mb-3">
                             {{ form.file.label_tag }}
                             {{ form.file|add_class:"form-control" }}
                         </div>
-                       
+
                         <button type="submit" class="btn btn-primary me-2">Upload</button>
                     </form>
                 </div>

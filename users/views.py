@@ -268,11 +268,27 @@ def delete_project(request, project_name, id):
 
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
     is_project_owner = project.owner == request.user
-    
+
     if is_pma_admin or is_project_owner:
-        # Delete the project and associated files if any
-        project.delete()
-        messages.success(request, "Project deleted successfully.")
+        s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+        bucket_name = AWS_STORAGE_BUCKET_NAME
+
+        folder_prefix = f"{project_name}/"
+
+        try:
+            objects_to_delete = s3.list_objects_v2(Bucket=bucket_name, Prefix=folder_prefix)
+            if 'Contents' in objects_to_delete:
+                delete_keys = [{'Key': obj['Key']} for obj in objects_to_delete['Contents']]
+                
+                s3.delete_objects(Bucket=bucket_name, Delete={'Objects': delete_keys})
+
+            project.delete()
+            print("Successfully deleted project and its files.")
+            messages.success(request, "Project and associated files deleted successfully.")
+        except Exception as e:
+            print(f"Error deleting project files from S3: {e}")
+            messages.error(request, "An error occurred while trying to delete the project files.")
+        
         return redirect('project_list')
     else:
         messages.error(request, f"You don't have permission to delete {project_name}.")

@@ -38,6 +38,10 @@ def dashboard(request):
     else:
         # if not authenticated, anon user, redirect to home page (with Google login option)
         return render(request, 'home.html')
+    
+@login_required
+def settings(request):
+    return render(request, 'settings.html')
 
 def logout_view(request):
     logout(request)

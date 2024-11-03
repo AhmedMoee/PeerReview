@@ -11,7 +11,10 @@ class FileUploadForm(forms.ModelForm):
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ['name']
+        fields = ['name', 'description', 'due_date', 'category']
+        widgets = {
+            'due_date': forms.DateInput(attrs={'type': 'date'})
+        }
         
 
 

@@ -1,93 +1,129 @@
 {% extends "base.html" %}
-
+{% load widget_tweaks %}
 {% block content %}
-    <h1>{{ project.name }}</h1>
+<div class="container mt-5">
+    <h1 class="mb-4">{{ project.name }}</h1>
+
 
     {% if user.is_authenticated %}
         {% if user in project.members.all %}
-            <h2 class="h4">Upload File</h2>
-            <form method="post" enctype="multipart/form-data" class="mb-3"> 
-                {% csrf_token %}
-                <div class="form-group mb-3">
-                    {{ form.name.label_tag }}
-                    {{ form.name }}
+            <!-- File Upload Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">Upload File</h2>
                 </div>
-                
-                <div class="form-group mb-3">
-                    {{ form.description.label_tag }}
-                    {{ form.description }}
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="mb-3">
+                        {% csrf_token %}
+                        <div class="form-group mb-3">
+                            {{ form.name.label_tag }}
+                            {{ form.name|add_class:"form-control" }}
+                        </div>
+                       
+                        <div class="form-group mb-3">
+                            {{ form.description.label_tag }}
+                            {{ form.description|add_class:"form-control" }}
+                        </div>
+                       
+                        <div class="form-group mb-3">
+                            {{ form.keywords.label_tag }}
+                            {{ form.keywords|add_class:"form-control" }}
+                        </div>
+                       
+                        <div class="form-group mb-3">
+                            {{ form.file.label_tag }}
+                            {{ form.file|add_class:"form-control" }}
+                        </div>
+                       
+                        <button type="submit" class="btn btn-primary me-2">Upload</button>
+                    </form>
                 </div>
-                
-                <div class="form-group mb-3">
-                    {{ form.keywords.label_tag }}
-                    {{ form.keywords }}
-                </div>
-                
-                <div class="form-group mb-3">
-                    {{ form.file.label_tag }}
-                    {{ form.file }}
-                </div>
-                
-                <button type="submit" class="btn btn-primary me-2">Upload</button>
-            </form>
+            </div>
         {% endif %}
-        {% if is_pma_admin or user in project.members.all %}
-            <a href="{% url 'project_uploads' project.name project.id %}" class="btn btn-secondary">View Uploads</a>
 
-            <head>
-                <title>Project Chat</title>
-                <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-            </head>
-            <body>
-                <h1>Project Chat</h1>
-                <div id="chat-log"></div>
-                
-                <form id="message-form" method="post" action="{% url 'create_message' project.id user.id %}">
-                    {% csrf_token %}
-                    <textarea id="chat-message-input" name="content" placeholder="Your next message..."></textarea>
-                    <button type="submit">Send</button>
-                </form>
-            
-                <button id="refresh-button">Refresh Messages</button>
-            
-                <script>
-                    function loadMessages() {
-                        $.getJSON('{% url "load_messages" project.id %}', function(data) {
-                            $('#chat-log').empty();
-                            data.messages.forEach(function(message) {
-                                $('#chat-log').append('<div>' + message.username + ': ' + message.content + '</div>');
-                            });
-                        });
-                    }
-            
-                    $(document).ready(function() {
-                        // Initial load of messages
-                        loadMessages();
-            
-                        // Refresh button handler
-                        $('#refresh-button').on('click', function() {
-                            loadMessages();
-                        });
-            
-                        // Form submission handler
-                        $('#message-form').on('submit', function(event) {
-                            event.preventDefault();
-                            const formData = $(this).serialize();
-            
-                            $.post($(this).attr('action'), formData, function(response) {
-                                if (response.status === 'Message sent') {
-                                    $('#chat-message-input').val('');
-                                    loadMessages(); // Reload messages after sending
-                                } else {
-                                    console.error(response.error);
-                                }
-                            });
+
+        <!-- View Uploads Button -->
+        {% if is_pma_admin or user in project.members.all %}
+            <a href="{% url 'project_uploads' project.name project.id %}" class="btn btn-secondary mb-4">View Uploads</a>
+
+
+            <!-- Project Chat Section -->
+            <div class="card mb-5">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">Project Chat</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Chat Log -->
+                    <div id="chat-log" style="
+                        height: 300px;
+                        overflow-y: scroll;
+                        border: 1px solid #ced4da;
+                        padding: 15px;
+                        background-color: #f8f9fa;
+                        border-radius: .25rem;
+                        margin-bottom: 20px;">
+                    </div>
+
+
+                    <!-- Chat Form -->
+                    <form id="message-form" method="post" action="{% url 'create_message' project.id user.id %}">
+                        {% csrf_token %}
+                        <textarea id="chat-message-input" name="content" placeholder="Your next message..." rows="3" class="form-control mb-3"></textarea>
+                        <button type="submit" class="btn btn-primary w-100">Send</button>
+                    </form>
+
+
+                    <!-- Refresh Button -->
+                    <button id="refresh-button" class="btn btn-secondary w-100 mt-3">Refresh Messages</button>
+                </div>
+            </div>
+
+
+            <!-- jQuery and AJAX for Chat -->
+            <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+            <script>
+                function loadMessages() {
+                    $.getJSON('{% url "load_messages" project.id %}', function(data) {
+                        $('#chat-log').empty();
+                        data.messages.forEach(function(message) {
+                            $('#chat-log').append('<div><strong>' + message.username + ':</strong> ' + message.content + '</div>');
                         });
                     });
-                </script>
-            </body>
+                }
+
+
+                $(document).ready(function() {
+                    // Initial load of messages
+                    loadMessages();
+
+
+                    // Refresh button handler
+                    $('#refresh-button').on('click', function() {
+                        loadMessages();
+                    });
+
+
+                    // Form submission handler
+                    $('#message-form').on('submit', function(event) {
+                        event.preventDefault();
+                        const formData = $(this).serialize();
+
+
+                        $.post($(this).attr('action'), formData, function(response) {
+                            if (response.status === 'Message sent') {
+                                $('#chat-message-input').val('');
+                                loadMessages(); // Reload messages after sending
+                            } else {
+                                console.error(response.error);
+                            }
+                        });
+                    });
+                });
+            </script>
+
 
         {% else %}
+            <!-- Not a member message -->
             <p>You are not a member of this project. Please request to join.</p>
             <form action="{% url 'request_to_join' project.id %}" method="post">
                 {% csrf_token %}
@@ -95,13 +131,14 @@
             </form>
         {% endif %}
     {% else %}
+        <!-- Login prompt for unauthenticated users -->
         <p>Please Login to view this project.</p>
         {% load socialaccount %}
-        <h2>Google Login</h2>
-        <a href="{% provider_login_url 'google' %}?next=/" class="btn btn-primary">
-            Login With Google
-        </a>
+        <a href="{% provider_login_url 'google' %}?next=/" class="btn btn-primary">Login With Google</a>
     {% endif %}
 
-    <a href="{% url 'project_list' %}" class="btn btn-secondary">Back to Projects</a>
+
+    <!-- Back to Projects Button -->
+    <a href="{% url 'project_list' %}" class="btn btn-secondary mt-4">Back to Projects</a>
+</div> <!-- End of Container -->
 {% endblock %}

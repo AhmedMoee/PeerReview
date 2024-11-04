@@ -263,7 +263,7 @@ def view_project(request, project_name, id):
     return render(request, 'project_view.html', {
         'project': project,
         'form': form,
-        'is_pma_admin': is_pma_admin
+        'is_pma_admin': is_pma_admin,
     })
 
 def delete_project(request, project_name, id):
@@ -490,3 +490,12 @@ def view_profile(request):
         form = UserProfileForm(instance=profile)
 
     return render(request, 'view_profile.html', {'form': form, 'profile': profile, 'projects': projects})
+
+def project_members(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    context = {
+        'project': project,
+        'members': project.members.all()
+    }
+    return render(request, 'project_detail.html', context)
+

@@ -65,3 +65,8 @@ class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
         fields = ['bio', 'specializations', 'linkedin', 'github', 'twitter']
+
+class UploadMetaDataForm(forms.ModelForm):
+    class Meta:
+        model = Upload
+        fields = ['name', 'description', 'keywords']

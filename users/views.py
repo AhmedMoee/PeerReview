@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, F
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse, HttpResponseBadRequest
 from .models import Upload, JoinRequest, Project, Message, User, UserProfile
-from .forms import FileUploadForm, ProjectForm, UserProfileForm
+from .forms import FileUploadForm, ProjectForm, UserProfileForm, UploadMetaDataForm
 from typing import AsyncGenerator
 import asyncio
 import json
@@ -60,7 +60,6 @@ def common_dashboard(request):
         form = FileUploadForm()
     
     return render(request, 'common_dashboard.html', {'form': form})
-
 
 @login_required
 def create_project(request):
@@ -181,7 +180,6 @@ def deny_join_request(request, request_id):
 
     return redirect('manage_join_requests', project_id=join_request.project.id)
 
-
 def project_detail(request, project_id):
     project = get_object_or_404(Project, id=project_id)
 
@@ -197,7 +195,6 @@ def project_detail(request, project_id):
 
     return render(request, 'project_detail.html', context)
 
-
 def leave_project(request, project_id, project_name):
     project = get_object_or_404(Project, id=project_id, name=project_name)
 
@@ -211,7 +208,6 @@ def leave_project(request, project_id, project_name):
     else:
         messages.error(request, 'You are not a member of this project.')
     return redirect('project_list')
-
 
 def project_uploads(request, project_name, id):
     project = get_object_or_404(Project, id=id)
@@ -312,7 +308,7 @@ def view_project(request, project_name, id):
         'project': project,
         'form': form,
         'is_pma_admin': is_pma_admin,
-        'transcription_text': transcription_text  
+        'transcription_text': transcription_text  ,
     })
 
 def delete_project(request, project_name, id):
@@ -485,7 +481,7 @@ def view_file(request, project_name, id, file_id):
             },
             ExpiresIn=3600  # URL expires in 1 hour
         )
-        
+
         # Handle prompt form submission
         if request.method == 'POST' and 'add_prompt' in request.POST:
             prompt_form = PromptForm(request.POST)
@@ -495,27 +491,30 @@ def view_file(request, project_name, id, file_id):
                 new_prompt.created_by = request.user
                 new_prompt.save()
                 return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
-        
+
         # Handle response form submission
         elif request.method == 'POST' and 'add_response' in request.POST:
             response_form = PromptResponseForm(request.POST)
             if response_form.is_valid():
-                # Retrieve the prompt instance
                 prompt_id = request.POST.get("prompt_id")
                 prompt = get_object_or_404(Prompt, id=prompt_id)
-
-                # Save the new response
                 new_response = response_form.save(commit=False)
                 new_response.prompt = prompt
                 new_response.created_by = request.user
                 new_response.save()
-                
                 return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
 
+        # handling metadata update submission
+        elif request.method == 'POST' and 'edit_metadata' in request.POST:
+            metadata_form = UploadMetaDataForm(request.POST, instance=upload)
+            if metadata_form.is_valid():
+                metadata_form.save()
+                return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
         else:
             prompt_form = PromptForm()
             response_form = PromptResponseForm()
-
+            # have it prepopulated in case users don't want to change the name
+            metadata_form = UploadMetaDataForm(instance=upload)
         # Get the transcription job name and check the transcription status
         job_name = upload.transcription_job_name
         output_key = upload.output_key
@@ -534,6 +533,7 @@ def view_file(request, project_name, id, file_id):
             'project': project,
             'prompt_form': prompt_form,
             'response_form': response_form,
+            'metadata_form': metadata_form,
             'prompts': prompts,
             'transcription_text': transcription_text,
             'job_name': job_name,
@@ -545,7 +545,6 @@ def view_file(request, project_name, id, file_id):
         # If user doesn't have permission, show an error message
         messages.error(request, "You don't have permission to view this file.")
         return redirect('project_view', project_name=project.name, id=project.id)
-
 
 @login_required
 def view_profile(request):
@@ -561,6 +560,15 @@ def view_profile(request):
         form = UserProfileForm(instance=profile)
 
     return render(request, 'view_profile.html', {'form': form, 'profile': profile, 'projects': projects})
+
+def project_members(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    context = {
+        'project': project,
+        'members': project.members.all()
+    }
+    return render(request, 'project_detail.html', context)
+
 
 def start_transcription_job(job_name, file_uri, output_key):
     transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)

@@ -13,6 +13,8 @@ import random
 from datetime import datetime
 import time
 import uuid
+from django.http import JsonResponse
+from urllib.parse import urlparse
 
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
@@ -239,6 +241,8 @@ def view_project(request, project_name, id):
     
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
     transcription_text = None
+    job_name = None
+    output_key = None
 
     if request.method == 'POST':
         if request.user == project.owner:
@@ -270,19 +274,24 @@ def view_project(request, project_name, id):
                 new_upload.file = uploaded_file.name
                 new_upload.save()
 
+                # Construct the transcription output key
+                safe_project_name = project_name.replace(' ', '_')
+                output_key = f"{safe_project_name}/{uploaded_file.name}-transcription.json"
+                new_upload.output_key = output_key
+                new_upload.save()
+
                 # Start transcription job if the file type is supported
                 file_extension = uploaded_file.name.split('.')[-1].lower()
                 if file_extension in ['mp3', 'mp4', 'wav', 'flac']:
                     job_name = f"{project.name.replace(' ', '_')}-{uploaded_file.name}-{uuid.uuid4()}-transcription"
                     file_uri = f"s3://{AWS_STORAGE_BUCKET_NAME}/{project_name}/{uploaded_file.name}"
                     print(f'Starting transcription job: {job_name} for file: {file_uri}')
-                    start_transcription_job(job_name, file_uri)
 
-                    # Check transcription job immediately after starting it
-                    transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
-                    transcription_text = check_transcription_job(transcribe_client, job_name)
-                    if transcription_text is None:
-                        transcription_text = "Transcribing..."  
+                    start_transcription_job(job_name, file_uri, output_key)
+
+                    # Save the job name to the new upload
+                    new_upload.transcription_job_name = job_name  
+                new_upload.save()
 
                 return redirect('project_uploads', project_name=project.name, id=project.id)
             except Exception as e:
@@ -290,12 +299,14 @@ def view_project(request, project_name, id):
     else:
         form = FileUploadForm()
 
+    # Handle GET request to retrieve transcription status
     if request.method == 'GET':
-        upload_name = 'file'  
-        job_name = f"{project.name.replace(' ', '_')}-{upload_name}-transcription"
-        transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
-
-        transcription_text = check_transcription_job(transcribe_client, job_name)
+        last_upload = project.uploads.last()  
+        if last_upload and last_upload.transcription_job_name:
+            job_name = last_upload.transcription_job_name
+            output_key = last_upload.output_key
+            transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
+            transcription_text = check_transcription_job(transcribe_client, job_name, output_key)
 
     return render(request, 'project_view.html', {
         'project': project,
@@ -505,11 +516,18 @@ def view_file(request, project_name, id, file_id):
             prompt_form = PromptForm()
             response_form = PromptResponseForm()
 
+        # Get the transcription job name and check the transcription status
+        job_name = upload.transcription_job_name
+        output_key = upload.output_key
+        transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
+        transcription_text = check_transcription_job(transcribe_client, job_name, output_key) if job_name else None
+
         context = {
             'file_type': mimetypes.guess_type(upload.file.name)[0],
             'upload_name': upload.name,
             'upload_file': upload.file,
             'file_url': file_url,  # Replace with actual presigned URL generation
+            'file_id': file_id,
             'upload_description': upload.description,
             'upload_keywords': upload.keywords,
             'uploaded_at': upload.uploaded_at,
@@ -517,6 +535,8 @@ def view_file(request, project_name, id, file_id):
             'prompt_form': prompt_form,
             'response_form': response_form,
             'prompts': prompts,
+            'transcription_text': transcription_text,
+            'job_name': job_name,
         }
         
         return render(request, 'view_file.html', context)
@@ -542,14 +562,16 @@ def view_profile(request):
 
     return render(request, 'view_profile.html', {'form': form, 'profile': profile, 'projects': projects})
 
-def start_transcription_job(job_name, file_uri, language_code="en-US"):
+def start_transcription_job(job_name, file_uri, output_key):
     transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
     try:
         response = transcribe_client.start_transcription_job(
             TranscriptionJobName=job_name,
             Media={'MediaFileUri': file_uri},
             MediaFormat='mp4',  
-            LanguageCode='en-US'  
+            LanguageCode='en-US',
+            OutputBucketName=AWS_STORAGE_BUCKET_NAME,  
+            OutputKey=output_key,  
         )
         print(f'Started transcription job: {response}')
     except Exception as e:
@@ -570,18 +592,17 @@ def transcribe_file(request, project_id, file_name):
 
     return redirect('view_project', project_name=project.name, id=project_id)
 
-def check_transcription_job(transcribe_client, job_name):
+def check_transcription_job(transcribe_client, job_name, output_key):
     """Check the status of the transcription job."""
     try:
         response = transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
         status = response['TranscriptionJob']['TranscriptionJobStatus']
 
         if status == 'COMPLETED':
-            transcription_uri = response['TranscriptionJob']['Transcript']['TranscriptFileUri']
             s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
-            bucket_name, key = transcription_uri.replace("s3://", "").split("/", 1)
-
-            transcription_response = s3.get_object(Bucket=bucket_name, Key=key)
+            
+            # Fetch the transcription data
+            transcription_response = s3.get_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key=output_key)
             transcription_data = json.loads(transcription_response['Body'].read().decode('utf-8'))
 
             transcription_text = transcription_data['results']['transcripts'][0]['transcript']
@@ -589,7 +610,7 @@ def check_transcription_job(transcribe_client, job_name):
             return transcription_text
         elif status == 'FAILED':
             print(f"Transcription job {job_name} failed.")
-            return None
+            return "Transcription failed."
         else:
             print(f"Transcription job {job_name} is still in progress. Status: {status}")
             return "Transcribing..."  
@@ -597,3 +618,17 @@ def check_transcription_job(transcribe_client, job_name):
     except Exception as e:
         print(f"Error checking transcription job: {e}")
         return None
+    
+def refresh_transcription_status(request, job_name, file_id):
+    upload = get_object_or_404(Upload, id=file_id)
+    
+    output_key = upload.output_key
+
+    transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
+    transcription_text = check_transcription_job(transcribe_client, job_name, output_key)
+    
+    response = {
+        "status": "completed" if transcription_text not in ["Transcribing...", None] else transcription_text,
+        "transcription": transcription_text if transcription_text not in ["Transcribing...", None] else ""
+    }
+    return JsonResponse(response)

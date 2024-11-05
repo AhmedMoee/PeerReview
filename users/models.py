@@ -53,6 +53,8 @@ class Upload(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='uploads')
     description = models.TextField(blank=True, null=True)
     keywords = models.CharField(max_length=200, blank=True, null=True)
+    transcription_job_name = models.CharField(max_length=255, blank=True, null=True)
+    output_key = models.CharField(max_length=255, blank=True, null=True)  # Add this line
 
     class Meta:
         constraints = [

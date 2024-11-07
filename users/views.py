@@ -13,7 +13,7 @@ import random
 from datetime import datetime
 import time
 import uuid
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from urllib.parse import urlparse
 
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
@@ -544,11 +544,18 @@ def view_file(request, project_name, id, file_id):
         messages.error(request, "You don't have permission to view this file.")
         return redirect('project_view', project_name=project.name, id=project.id)
 @login_required
-def view_profile(request):
-    profile = get_object_or_404(UserProfile, user=request.user)
-    projects = Project.objects.filter(Q(owner=request.user) | Q(members=request.user)).distinct()
+def view_profile(request, user_id):
 
-    return render(request, 'view_profile.html', {'profile': profile, 'projects': projects})
+    # sends users back to whatever page they were viewing previously (dashboard, project view page, search users page)
+    referer = request.META.get('HTTP_REFERER', '/')
+
+    # updated to allow users to view other profiles, not just their own profile
+    user = get_object_or_404(User, id=user_id)
+    profile = get_object_or_404(UserProfile, user=user)
+    projects = Project.objects.filter(Q(owner=user) | Q(members=user)).distinct()
+
+    return render(request, 'view_profile.html', {'user': user, 'profile': profile, 'projects': projects,
+                                                 'referer': referer})
 
 @login_required
 def edit_profile(request):

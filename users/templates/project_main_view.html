@@ -138,33 +138,29 @@
                     <h2 class="h4 mb-0">Project Members</h2>
                 </div>
                 <div class="card-body">
-                    <!-- Display Project Owner First -->
+                    <!-- Display Project Owner First-->
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item">
-                            <strong>
-                                <a href="{% url 'view_profile' %}">
-                                    {% if project.owner.get_full_name %}
-                                        {{ project.owner.get_full_name }}
-                                    {% elif project.owner.first_name %}
-                                        {{ project.owner.first_name }}
-                                    {% else %}
-                                        {{ project.owner.username }}
-                                    {% endif %}
-                                </a>
-                            </strong>
+                            {% if project.owner.get_full_name %}
+                                <a href="{% url 'view_profile' user_id=user.id %}">{{ project.owner.get_full_name }}</a> (Project Owner)
+                            {% elif project.owner.first_name %}
+                                <a href="{% url 'view_profile' user_id=user.id %}">{{ project.owner.first_name }}</a> (Project Owner)
+                            {% else %}
+                                <a href="{% url 'view_profile' user_id=user.id %}">{{ project.owner.username }}</a> (Project Owner)
+                            {% endif %}
                         </li>
-                        <!-- Display Other Project Members -->
+                        <!-- Display Project Members-->
                         {% if project.members.exists %}
                             {% for member in project.members.all %}
                                 {% if member != project.owner %}  <!-- Exclude owner if already listed above -->
                                     <li class="list-group-item">
-                                        <a> <!-- figure out how to link user profiles -->
+                                        <a href="{% url 'view_profile' user_id=member.id %}">
                                             {% if member.get_full_name %}
-                                            {{ member.get_full_name }}
+                                                {{ member.get_full_name }}
                                             {% elif member.first_name %}
-                                            {{ member.first_name }}
+                                                {{ member.first_name }}
                                             {% else %}
-                                            {{ member.username }}
+                                                {{ member.username }}
                                             {% endif %}
                                         </a>
                                     </li>

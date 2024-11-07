@@ -39,10 +39,21 @@ def dashboard(request):
             return render(request, 'pma_admin_dashboard.html', {'user_name': user_name})
         else:
             # Render the Common User dashboard
-            return render(request, 'common_dashboard.html', {'user_name': user_name})
-    else:
-        # if not authenticated, anon user, redirect to home page (with Google login option)
-        return render(request, 'anonymous_dashboard.html', {'projects': projects})
+            return common_dashboard(request)
+    # if not authenticated, anon user, redirect to home page (with Google login option)
+    return render(request, 'anonymous_dashboard.html', {'projects': projects})
+    
+@login_required
+def common_dashboard(request):
+    user_name = request.user.first_name or request.user.username
+    owned_projects = Project.objects.filter(owner=request.user)
+    member_projects = Project.objects.filter(members=request.user).exclude(owner=request.user)
+
+    return render(request, 'common_dashboard.html', {
+        'user_name': user_name,
+        'owned_projects': owned_projects,
+        'member_projects': member_projects,
+    })
 
 @login_required
 def settings(request):

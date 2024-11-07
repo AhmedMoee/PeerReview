@@ -3,20 +3,74 @@
 {% block title %} Common User Dashboard {% endblock %}
 
 {% block content %}
-    <h1>Welcome, {{ user_name }}! (Common User)</h1>
-    <p>You can create and manage your own projects here.</p>
+<div class="container mt-5">
+    <h1>Welcome, {{ user_name }}!</h1>
+    <p class="text-muted">You can create and manage your own projects here.</p>
 
-    <div class="create-project-section mt-5">
-        <h2>Create a New Project</h2>
-        <a href="{% url 'create_project' %}" class="custom-btn">Create Project</a>
-    </div>
-    
-    <div class="mt-4">
-        <h3> View All Projects</h3>
-        <a href="{% url 'project_list' %}" class="custom-btn"> View Projects </a>
-    </div>
+    <!-- Two-Column Layout -->
+    <div class="row mt-4">
+        <!-- Column for Project Actions -->
+        <div class="col-md-3">
+            <!-- Create Project Section -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">Create a New Project</h4>
+                    <a href="{% url 'create_project' %}" class="btn btn-primary w-100">Create Project</a>
+                </div>
+            </div>
 
-    <a href="{% url 'logout' %}" class="btn btn-danger mt-4">
-        Logout
-    </a>
+            <!-- View All Projects Section -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">View All Projects</h4>
+                    <a href="{% url 'project_list' %}" class="btn btn-secondary w-100">View Projects</a>
+                </div>
+            </div>
+
+            <!-- Logout Button -->
+            <a href="{% url 'logout' %}" class="btn btn-danger w-100 mt-4">Logout</a>
+        </div>
+
+        <!-- Column for Owned Projects and Member Projects -->
+        <div class="col-md-9">
+            <!-- Owned Projects Section -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">Your Owned Projects</h4>
+                    {% if owned_projects %}
+                        <ul class="list-group">
+                            {% for project in owned_projects %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="{% url 'project_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
+                                    <span class="badge bg-secondary">Owner</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="mt-2"><em>You don't own any projects yet.</em></p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Member Projects Section -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">Projects You Are a Member Of</h4>
+                    {% if member_projects %}
+                        <ul class="list-group">
+                            {% for project in member_projects %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="{% url 'project_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
+                                    <span class="badge bg-info">Member</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="mt-2"><em>You are not a member of any projects yet.</em></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

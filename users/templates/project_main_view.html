@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- project_uploads -> project_main_view -->
+
+<!-- new main project view page -->
+
+<div class="container mt-5">
+    <h1 class="mb-4">{{ project.name }}</h1>
+
+    <div class="row">
+        <div class="col-lg-8"> <!-- rubric, files, project chat -->
+
+            <!-- View Rubric and Review Guidelines Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">Project Resources</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Rubric Link or Message -->
+                    {% if project.rubric %}
+                        <p><strong>Rubric:</strong> <a href="{{ project.rubric.url }}" target="_blank">Download Rubric</a></p>
+                    {% else %}
+                        <p><strong>Rubric:</strong> Not uploaded yet.</p>
+                    {% endif %}
+
+                    <!-- Review Guidelines Link or Message -->
+                    {% if project.review_guidelines %}
+                        <p><strong>Review Guidelines:</strong> <a href="{{ project.review_guidelines.url }}" target="_blank">Download Guidelines</a></p>
+                    {% else %}
+                        <p><strong>Review Guidelines:</strong> Not uploaded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Form to upload or update Rubric and Review Guidelines -->
+            {% if user == project.owner %}
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h4 mb-0">Upload Rubric or Review Guidelines</h2>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="form-group mb-3">
+                                <label for="id_rubric">Upload Rubric:</label>
+                                <input type="file" name="rubric" id="id_rubric" class="form-control" />
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="id_review_guidelines">Upload Review Guidelines:</label>
+                                <input type="file" name="review_guidelines" id="id_review_guidelines" class="form-control" />
+                            </div>
+                            <!-- Button positioned at the end of inputs -->
+                            <div class="text-end"> <!-- Aligns button to the right -->
+                                <button type="submit" class="btn btn-primary">Upload</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">All Uploaded Files for {{ project.name }}</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Search Form -->
+                    <form method="get" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="search" value="{{ search_query }}" placeholder="Search files by name" class="form-control" />
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </div>
+                    </form>
+
+                    <!-- File List -->
+                    <ul class="list-group">
+                        {% for file in files %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <!-- Adjust file link and name -->
+                                <a href="{% url 'view_file' project.name project.id file.id %}">{{ file.name }}</a>
+                                {% if is_owner_or_admin %}
+                                    <form action="{% url 'delete_file' project.name project.id file.id %}" method="post" class="d-inline-block">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                {% endif %}
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">No files uploaded.</li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- Upload Files Button -->
+                    <div class="text-end mt-3">
+                        <a href="{% url 'project_upload' project.name project.id %}" class="btn btn-secondary mb-4">Upload Files</a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-4"> <!-- project member area -->
+
+            <!-- Project Chat Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">Project Chat</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Chat Log -->
+                    <div id="chat-log" style="
+                        height: 300px;
+                        overflow-y: scroll;
+                        border: 1px solid #ced4da;
+                        padding: 15px;
+                        background-color: #f8f9fa;
+                        border-radius: .25rem;
+                        margin-bottom: 20px;">
+                    </div>
+
+                    <!-- Chat Form -->
+                    <form id="message-form" method="post" action="{% url 'create_message' project.id user.id %}">
+                        {% csrf_token %}
+                        <textarea id="chat-message-input" name="content" placeholder="Your next message..." rows="3" class="form-control mb-3"></textarea>
+                        <button type="submit" class="btn btn-primary w-100">Send</button>
+                    </form>
+
+                    <!-- Refresh Button -->
+                    <button id="refresh-button" class="btn btn-secondary w-100 mt-3">Refresh Messages</button>
+                </div>
+            </div>
+
+            <!-- Project Members Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">Project Members</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Display Project Owner First -->
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <strong>
+                                <a href="{% url 'view_profile' %}">
+                                    {% if project.owner.get_full_name %}
+                                        {{ project.owner.get_full_name }}
+                                    {% elif project.owner.first_name %}
+                                        {{ project.owner.first_name }}
+                                    {% else %}
+                                        {{ project.owner.username }}
+                                    {% endif %}
+                                </a>
+                            </strong>
+                        </li>
+                        <!-- Display Other Project Members -->
+                        {% if project.members.exists %}
+                            {% for member in project.members.all %}
+                                {% if member != project.owner %}  <!-- Exclude owner if already listed above -->
+                                    <li class="list-group-item">
+                                        <a> <!-- figure out how to link user profiles -->
+                                            {% if member.get_full_name %}
+                                            {{ member.get_full_name }}
+                                            {% elif member.first_name %}
+                                            {{ member.first_name }}
+                                            {% else %}
+                                            {{ member.username }}
+                                            {% endif %}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <p>No additional members have been added to this project yet.</p>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+
+    </div> <!-- end of row -->
+
+</div>
+
+    <!-- jQuery and AJAX for Chat -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function loadMessages() {
+            $.getJSON('{% url "load_messages" project.id %}', function(data) {
+                $('#chat-log').empty();
+                data.messages.forEach(function(message) {
+                    $('#chat-log').append('<div><strong>' + message.username + ':</strong> ' + message.content + '</div>');
+                });
+            });
+        }
+
+        $(document).ready(function() {
+            // Initial load of messages
+            loadMessages();
+
+            // Refresh button handler
+            $('#refresh-button').on('click', function() {
+                loadMessages();
+            });
+
+            // Form submission handler
+            $('#message-form').on('submit', function(event) {
+                event.preventDefault();
+                const formData = $(this).serialize();
+
+                $.post($(this).attr('action'), formData, function(response) {
+                    if (response.status === 'Message sent') {
+                        $('#chat-message-input').val('');
+                        loadMessages(); // Reload messages after sending
+                    } else {
+                        console.error(response.error);
+                    }
+                });
+            });
+        });
+    </script>
+
+    <a href="{% url 'project_list' %}" class="btn btn-secondary mt-3">Back to All Projects</a>
+{% endblock %}

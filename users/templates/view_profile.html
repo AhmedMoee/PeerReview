@@ -26,7 +26,7 @@
                     <ul>
                         {% for project in projects %}
                             <li>
-                                <a href="{% url 'project_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
+                                <a href="{% url 'project_main_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
                             </li>
                         {% empty %}
                             <li>You are not part of any projects yet.</li>

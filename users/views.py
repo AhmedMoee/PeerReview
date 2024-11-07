@@ -15,16 +15,18 @@ from datetime import datetime
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
 
-def home(request):
-    # If the user is authenticated, redirect to the dashboard
-    if request.user.is_authenticated:
-        return redirect('dashboard')
-    # Otherwise, render the home page (with the Google login option)
-    return render(request, 'home.html')
-    
+def login_view(request):
+    # Automatically redirect users to Google login
+    return redirect('socialaccount_login', provider='google')
+
+def logout_view(request):
+    logout(request)
+    return redirect('/')
 
 def dashboard(request):
+    projects = Project.objects.all()
     if request.user.is_authenticated:
+
         # look for first name, if it doesn't exist, use their username
         user_name = request.user.first_name or request.user.username
 
@@ -36,22 +38,11 @@ def dashboard(request):
             return render(request, 'common_dashboard.html', {'user_name': user_name})
     else:
         # if not authenticated, anon user, redirect to home page (with Google login option)
-        return render(request, 'home.html')
+        return render(request, 'anonymous_dashboard.html', {'projects': projects})
 
 def logout_view(request):
     logout(request)
     return redirect('/')
-
-def common_dashboard(request):
-    if request.method == 'POST':
-        form = FileUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            return redirect('common_dashboard')
-    else:
-        form = FileUploadForm()
-    
-    return render(request, 'common_dashboard.html', {'form': form})
 
 
 @login_required

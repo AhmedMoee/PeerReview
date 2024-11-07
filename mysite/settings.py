@@ -167,7 +167,7 @@ AUTHENTICATION_BACKEND = (
 
 SOCIALACCOUNT_ADAPTER = 'users.adapter.MySocialAccountAdapter'
 
-LOGIN_REDIRECT_URL = '/dashboard/'
+LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = "/"
 
 # AWS Settings

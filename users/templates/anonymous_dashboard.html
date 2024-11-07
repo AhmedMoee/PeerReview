@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %} Project Dashboard {% endblock %}
+
+{% load socialaccount %} <!-- Load the socialaccount tag library -->
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Project Dashboard</h2>
+    <p class="text-muted">You are viewing the public list of projects. Please log in to gain full access to all features.</p>
+
+    <!-- Directly link to the Google login page -->
+    <a href="{% provider_login_url 'google' %}?next=/" class="btn btn-primary mb-4">
+        Login with Google
+    </a>
+
+    <div class="project-list">
+        {% for project in projects %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{ project.name }}</h5>
+                    <p class="card-text">{{ project.description }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

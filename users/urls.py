@@ -21,5 +21,6 @@ urlpatterns = [
     path('projects/<str:project_name>/<int:id>/view/<int:file_id>/', views.view_file, name='view_file'),
     path('project/<str:project_name>/<int:project_id>/leave/', views.leave_project, name='leave_project'),
     path('profile/', views.view_profile, name='view_profile'),
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('refresh-transcription/<str:job_name>/<int:file_id>/', views.refresh_transcription_status, name='refresh_transcription'),
 ]

@@ -1,47 +1,59 @@
-<!-- templates/view_profile.html -->
-
 {% extends "base.html" %}
 
 {% block content %}
-<h1>{{ request.user.username }}'s Profile</h1>
+<div class="container mt-5">
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-md-8 offset-md-2">
+            <h1>{{ request.user.username }}'s Profile</h1>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3>About Me</h3>
+                    {% if profile.bio %}
+                        <p>{{ profile.bio }}</p>
+                    {% else %}
+                        <p><em>No bio available yet.</em></p>
+                    {% endif %}
 
-<div class="profile-info">
-    <h3>About Me</h3>
-    <p>{{ profile.bio }}</p>
+                    <h3>Specializations</h3>
+                    {% if profile.specializations %}
+                        <p>{{ profile.specializations }}</p>
+                    {% else %}
+                        <p><em>No specializations added yet.</em></p>
+                    {% endif %}
 
-    <h3>Specializations</h3>
-    <p>{{ profile.specializations }}</p>
+                    <h3>Projects Involved</h3>
+                    <ul>
+                        {% for project in projects %}
+                            <li>
+                                <a href="{% url 'project_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
+                            </li>
+                        {% empty %}
+                            <li>You are not part of any projects yet.</li>
+                        {% endfor %}
+                    </ul>
 
-    <h3>Projects Involved</h3>
-    <ul>
-        {% for project in projects %}
-            <li>{{ project.name }}</li>
-        {% empty %}
-            <li>You are not part of any projects yet.</li>
-        {% endfor %}
-    </ul>
+                    <h3>Social Links</h3>
+                    <ul class="list-inline">
+                        {% if profile.linkedin %}
+                            <li class="list-inline-item"><a href="{{ profile.linkedin }}" target="_blank" class="btn btn-outline-primary">LinkedIn</a></li>
+                        {% endif %}
+                        {% if profile.github %}
+                            <li class="list-inline-item"><a href="{{ profile.github }}" target="_blank" class="btn btn-outline-dark">GitHub</a></li>
+                        {% endif %}
+                        {% if profile.twitter %}
+                            <li class="list-inline-item"><a href="{{ profile.twitter }}" target="_blank" class="btn btn-outline-info">Twitter</a></li>
+                        {% endif %}
+                    </ul>
 
+                    <!-- Edit Profile Button -->
+                    <a href="{% url 'edit_profile' %}" class="btn btn-primary mt-4">Edit Profile</a>
+                </div>
+            </div>
 
-    <h3>Social Links</h3>
-    <ul>
-        {% if profile.linkedin %}
-            <li><a href="{{ profile.linkedin }}" target="_blank">LinkedIn</a></li>
-        {% endif %}
-        {% if profile.github %}
-            <li><a href="{{ profile.github }}" target="_blank">GitHub</a></li>
-        {% endif %}
-        {% if profile.twitter %}
-            <li><a href="{{ profile.twitter }}" target="_blank">Twitter</a></li>
-        {% endif %}
-    </ul>
+            <!-- Back to Dashboard Button -->
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3">Home</a>
+        </div>
+    </div>
 </div>
-
-<h2>Update Profile</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Save Changes</button>
-</form>
-
-<a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3">Home</a>
 {% endblock %}

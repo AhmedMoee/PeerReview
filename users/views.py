@@ -532,11 +532,16 @@ def view_file(request, project_name, id, file_id):
         # If user doesn't have permission, show an error message
         messages.error(request, "You don't have permission to view this file.")
         return redirect('project_view', project_name=project.name, id=project.id)
-
 @login_required
 def view_profile(request):
     profile = get_object_or_404(UserProfile, user=request.user)
     projects = Project.objects.filter(Q(owner=request.user) | Q(members=request.user)).distinct()
+
+    return render(request, 'view_profile.html', {'profile': profile, 'projects': projects})
+
+@login_required
+def edit_profile(request):
+    profile = get_object_or_404(UserProfile, user=request.user)
 
     if request.method == 'POST':
         form = UserProfileForm(request.POST, instance=profile)
@@ -544,9 +549,10 @@ def view_profile(request):
             form.save()
             return redirect('view_profile')
     else:
+        # Prefill the form with the current data from the profile
         form = UserProfileForm(instance=profile)
 
-    return render(request, 'view_profile.html', {'form': form, 'profile': profile, 'projects': projects})
+    return render(request, 'edit_profile.html', {'form': form})
 
 def project_members(request, project_id):
     project = get_object_or_404(Project, id=project_id)

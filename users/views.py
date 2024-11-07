@@ -131,8 +131,15 @@ def request_to_join(request, project_id):
     project = get_object_or_404(Project, id=project_id)
 
     # Check if the user has already made a request for this project
-    if JoinRequest.objects.filter(user=request.user, project=project).exists():
+    existing_request = JoinRequest.objects.filter(user=request.user, project=project)
+
+    # Check if the user has already made a request for this project
+    if existing_request:
         messages.error(request, 'You have already requested to join this project.')
+    # allows users to rerequest to join if they were denied the first time
+    elif existing_request and existing_request.first().status == 'denied':
+        # Optionally, remove the denied request to allow a new one
+        existing_request.delete()
     else:
         # Create a new JoinRequest object
         JoinRequest.objects.create(user=request.user, project=project)
@@ -198,10 +205,10 @@ def leave_project(request, project_id, project_name):
 
     # check if user is a member of the project
     if request.user in project.members.all():
-        # # delete join request so they can request again after leaving
-        JoinRequest.objects.filter(user=request.user, project=project).delete()
         # remove membership
         project.members.remove(request.user)
+        # # delete join request so they can request again after leaving
+        JoinRequest.objects.filter(user=request.user, project=project).delete()
         messages.success(request, 'You have successfully left the project.')
     else:
         messages.error(request, 'You are not a member of this project.')

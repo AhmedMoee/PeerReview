@@ -142,11 +142,11 @@
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item">
                             {% if project.owner.get_full_name %}
-                                <a href="{% url 'view_profile' user_id=user.id %}">{{ project.owner.get_full_name }}</a> (Project Owner)
+                                <a href="{% url 'view_profile' user_id=user.id %}">{{ project.owner.get_full_name }}</a> <span class="badge bg-secondary">Project Owner</span>
                             {% elif project.owner.first_name %}
-                                <a href="{% url 'view_profile' user_id=user.id %}">{{ project.owner.first_name }}</a> (Project Owner)
+                                <a href="{% url 'view_profile' user_id=user.id %}">{{ project.owner.first_name }}</a> <span class="badge bg-secondary">Project Owner</span>
                             {% else %}
-                                <a href="{% url 'view_profile' user_id=user.id %}">{{ project.owner.username }}</a> (Project Owner)
+                                <a href="{% url 'view_profile' user_id=user.id %}">{{ project.owner.username }}</a> <span class="badge bg-secondary">Project Owner</span>
                             {% endif %}
                         </li>
                         <!-- Display Project Members-->

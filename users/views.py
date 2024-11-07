@@ -462,7 +462,7 @@ def view_file(request, project_name, id, file_id):
         # Determine the media type of the file
         mime_type, _ = mimetypes.guess_type(file_key)
 
-        if mime_type not in ['image/jpeg', 'text/plain', 'application/pdf']:
+        if mime_type not in ['image/jpeg', 'text/plain', 'application/pdf', 'video/mp4']:
             disposition_type = 'attachment'  # to download the file
         else:
             disposition_type = 'inline'  # to display the file

@@ -130,16 +130,12 @@ def project_list(request):
 def request_to_join(request, project_id):
     project = get_object_or_404(Project, id=project_id)
 
-    # Check if the user has already made a request for this project
-    existing_request = JoinRequest.objects.filter(user=request.user, project=project)
+    # Delete previous denied requests if they exist
+    JoinRequest.objects.filter(user=request.user, project=project, status='denied').delete()
 
     # Check if the user has already made a request for this project
-    if existing_request:
+    if JoinRequest.objects.filter(user=request.user, project=project).exists():
         messages.error(request, 'You have already requested to join this project.')
-    # allows users to rerequest to join if they were denied the first time
-    elif existing_request and existing_request.first().status == 'denied':
-        # Optionally, remove the denied request to allow a new one
-        existing_request.delete()
     else:
         # Create a new JoinRequest object
         JoinRequest.objects.create(user=request.user, project=project)

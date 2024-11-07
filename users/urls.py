@@ -5,6 +5,7 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('settings/', views.settings, name='settings'),
     path('create_project/', views.create_project, name='create_project'),
     path('projects/', views.project_list, name='project_list'),
     path('projects/request_to_join/<int:project_id>/', views.request_to_join, name='request_to_join'),
@@ -20,4 +21,5 @@ urlpatterns = [
     path('projects/<str:project_name>/<int:id>/view/<int:file_id>/', views.view_file, name='view_file'),
     path('project/<str:project_name>/<int:project_id>/leave/', views.leave_project, name='leave_project'),
     path('profile/', views.view_profile, name='view_profile'),
+    path('refresh-transcription/<str:job_name>/<int:file_id>/', views.refresh_transcription_status, name='refresh_transcription'),
 ]

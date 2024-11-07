@@ -64,10 +64,14 @@
                             {% elif project_status|dict_key:project.id == 'pending' %}
                                 <span class="badge bg-warning">Request Pending</span>
                             {% else %}
-                                <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary">Request to Join</button>
-                                </form>
+                                {% if project.current_reviewers_count < project.number_of_reviewers %}
+                                    <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary">Request to Join</button>
+                                    </form>
+                                {% else %}
+                                    <p class="text-muted">Maximum number of reviewers reached.</p>
+                                {% endif %}
                             {% endif %}
                         {% endif %}
 

@@ -34,6 +34,12 @@ class Project(models.Model):
     due_date = models.DateField(blank=True, null = True)
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    number_of_reviewers = models.PositiveIntegerField(default=1)
+    is_private = models.BooleanField(default=False)
+
+    @property
+    def current_reviewers_count(self):
+        return self.members.count() - 1
     rubric = models.FileField(upload_to='rubrics/', blank=True, null=True)
     review_guidelines = models.FileField(upload_to='review_guidelines/', blank=True, null=True)
 
@@ -47,6 +53,8 @@ class Upload(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='uploads')
     description = models.TextField(blank=True, null=True)
     keywords = models.CharField(max_length=200, blank=True, null=True)
+    transcription_job_name = models.CharField(max_length=255, blank=True, null=True)
+    output_key = models.CharField(max_length=255, blank=True, null=True)  # Add this line
 
     class Meta:
         constraints = [

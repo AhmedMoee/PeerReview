@@ -11,6 +11,10 @@ import asyncio
 import json
 import random
 from datetime import datetime
+import time
+import uuid
+from django.http import JsonResponse
+from urllib.parse import urlparse
 
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
@@ -37,6 +41,10 @@ def dashboard(request):
     else:
         # if not authenticated, anon user, redirect to home page (with Google login option)
         return render(request, 'home.html')
+    
+@login_required
+def settings(request):
+    return render(request, 'settings.html')
 
 def logout_view(request):
     logout(request)
@@ -92,24 +100,29 @@ def project_list(request):
             Q(category__icontains=search_query)
         )
 
-
-    # Only process membership statuses for common users
-    if request.user.is_authenticated and not is_pma_admin:
-        for project in projects:
-            if request.user in project.members.all():
-                project_status[project.id] = 'member'
-            elif JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists():
-                project_status[project.id] = 'pending'
-            else:
-                project_status[project.id] = 'not_member'
-
-    project_permissions = {}
+    visible_projects = []
+    project_status = {}
+    
     for project in projects:
-        is_owner = project.owner == request.user
-        project_permissions[project.id] = is_owner or is_pma_admin
+        # Check visibility conditions
+        if not project.is_private or project.owner == request.user or request.user in project.members.all() or is_pma_admin:
+            visible_projects.append(project)
+            
+            if request.user.is_authenticated and not is_pma_admin:
+                if request.user in project.members.all():
+                    project_status[project.id] = 'member'
+                elif JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists():
+                    project_status[project.id] = 'pending'
+                else:
+                    project_status[project.id] = 'not_member'
+    
+    project_permissions = {
+        project.id: project.owner == request.user or is_pma_admin 
+        for project in visible_projects
+    }
 
     return render(request, 'project_list.html', {
-        'projects': projects,
+        'projects': visible_projects,  
         'sort_by': sort_by,
         'project_status': project_status,
         'is_pma_admin': is_pma_admin, 
@@ -223,21 +236,24 @@ def view_project(request, project_name, id):
         return redirect('project_list')
     
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
+    transcription_text = None
+    job_name = None
+    output_key = None
 
     if request.method == 'POST':
         if request.user == project.owner:
-            # Rubric and Review Guidelines uploads
+            # Handle rubric and review guidelines uploads
             if 'rubric' in request.FILES:
                 project.rubric = request.FILES['rubric']
             if 'review_guidelines' in request.FILES:
                 project.review_guidelines = request.FILES['review_guidelines']
             project.save()
 
-        # General File Upload
+        # General file upload
         form = FileUploadForm(request.POST, request.FILES, project=project)
         if form.is_valid():
             uploaded_file = request.FILES['file']
-            s3 = boto3.client('s3')
+            s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
             
             try:
                 print(f'Uploading {uploaded_file.name} to S3...')
@@ -254,16 +270,45 @@ def view_project(request, project_name, id):
                 new_upload.file = uploaded_file.name
                 new_upload.save()
 
+                # Construct the transcription output key
+                safe_project_name = project_name.replace(' ', '_')
+                output_key = f"{safe_project_name}/{uploaded_file.name}-transcription.json"
+                new_upload.output_key = output_key
+                new_upload.save()
+
+                # Start transcription job if the file type is supported
+                file_extension = uploaded_file.name.split('.')[-1].lower()
+                if file_extension in ['mp3', 'mp4', 'wav', 'flac']:
+                    job_name = f"{project.name.replace(' ', '_')}-{uploaded_file.name}-{uuid.uuid4()}-transcription"
+                    file_uri = f"s3://{AWS_STORAGE_BUCKET_NAME}/{project_name}/{uploaded_file.name}"
+                    print(f'Starting transcription job: {job_name} for file: {file_uri}')
+
+                    start_transcription_job(job_name, file_uri, output_key)
+
+                    # Save the job name to the new upload
+                    new_upload.transcription_job_name = job_name  
+                new_upload.save()
+
                 return redirect('project_uploads', project_name=project.name, id=project.id)
             except Exception as e:
                 print(f'Error uploading file: {e}')
     else:
         form = FileUploadForm()
 
+    # Handle GET request to retrieve transcription status
+    if request.method == 'GET':
+        last_upload = project.uploads.last()  
+        if last_upload and last_upload.transcription_job_name:
+            job_name = last_upload.transcription_job_name
+            output_key = last_upload.output_key
+            transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
+            transcription_text = check_transcription_job(transcribe_client, job_name, output_key)
+
     return render(request, 'project_view.html', {
         'project': project,
         'form': form,
         'is_pma_admin': is_pma_admin,
+        'transcription_text': transcription_text  ,
     })
 
 def delete_project(request, project_name, id):
@@ -271,11 +316,27 @@ def delete_project(request, project_name, id):
 
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
     is_project_owner = project.owner == request.user
-    
+
     if is_pma_admin or is_project_owner:
-        # Delete the project and associated files if any
-        project.delete()
-        messages.success(request, "Project deleted successfully.")
+        s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+        bucket_name = AWS_STORAGE_BUCKET_NAME
+
+        folder_prefix = f"{project_name}/"
+
+        try:
+            objects_to_delete = s3.list_objects_v2(Bucket=bucket_name, Prefix=folder_prefix)
+            if 'Contents' in objects_to_delete:
+                delete_keys = [{'Key': obj['Key']} for obj in objects_to_delete['Contents']]
+                
+                s3.delete_objects(Bucket=bucket_name, Delete={'Objects': delete_keys})
+
+            project.delete()
+            print("Successfully deleted project and its files.")
+            messages.success(request, "Project and associated files deleted successfully.")
+        except Exception as e:
+            print(f"Error deleting project files from S3: {e}")
+            messages.error(request, "An error occurred while trying to delete the project files.")
+        
         return redirect('project_list')
     else:
         messages.error(request, f"You don't have permission to delete {project_name}.")
@@ -454,11 +515,18 @@ def view_file(request, project_name, id, file_id):
             response_form = PromptResponseForm()
             # have it prepopulated in case users don't want to change the name
             metadata_form = UploadMetaDataForm(instance=upload)
+        # Get the transcription job name and check the transcription status
+        job_name = upload.transcription_job_name
+        output_key = upload.output_key
+        transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
+        transcription_text = check_transcription_job(transcribe_client, job_name, output_key) if job_name else None
+
         context = {
             'file_type': mimetypes.guess_type(upload.file.name)[0],
             'upload_name': upload.name,
             'upload_file': upload.file,
             'file_url': file_url,  # Replace with actual presigned URL generation
+            'file_id': file_id,
             'upload_description': upload.description,
             'upload_keywords': upload.keywords,
             'uploaded_at': upload.uploaded_at,
@@ -467,6 +535,8 @@ def view_file(request, project_name, id, file_id):
             'response_form': response_form,
             'metadata_form': metadata_form,
             'prompts': prompts,
+            'transcription_text': transcription_text,
+            'job_name': job_name,
         }
         
         return render(request, 'view_file.html', context)
@@ -499,3 +569,74 @@ def project_members(request, project_id):
     }
     return render(request, 'project_detail.html', context)
 
+
+def start_transcription_job(job_name, file_uri, output_key):
+    transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
+    try:
+        response = transcribe_client.start_transcription_job(
+            TranscriptionJobName=job_name,
+            Media={'MediaFileUri': file_uri},
+            MediaFormat='mp4',  
+            LanguageCode='en-US',
+            OutputBucketName=AWS_STORAGE_BUCKET_NAME,  
+            OutputKey=output_key,  
+        )
+        print(f'Started transcription job: {response}')
+    except Exception as e:
+        print(f'Error starting transcription job: {e}')
+
+
+def transcribe_file(request, project_id, file_name):
+    project = get_object_or_404(Project, id=project_id)
+    
+    file_extension = file_name.split('.')[-1].lower()
+    if file_extension not in ['mp4', 'mp3', 'wav', 'flac']:
+        return redirect('view_project', project_name=project.name, id=project_id)
+
+    job_name = f"{project.name}-{file_name}-transcription"
+    file_uri = f"s3://{AWS_STORAGE_BUCKET_NAME}/{project.name}/{file_name}"
+
+    start_transcription_job(job_name, file_uri)
+
+    return redirect('view_project', project_name=project.name, id=project_id)
+
+def check_transcription_job(transcribe_client, job_name, output_key):
+    """Check the status of the transcription job."""
+    try:
+        response = transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
+        status = response['TranscriptionJob']['TranscriptionJobStatus']
+
+        if status == 'COMPLETED':
+            s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+            
+            # Fetch the transcription data
+            transcription_response = s3.get_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key=output_key)
+            transcription_data = json.loads(transcription_response['Body'].read().decode('utf-8'))
+
+            transcription_text = transcription_data['results']['transcripts'][0]['transcript']
+            print(f"Transcription completed: {transcription_text}")  
+            return transcription_text
+        elif status == 'FAILED':
+            print(f"Transcription job {job_name} failed.")
+            return "Transcription failed."
+        else:
+            print(f"Transcription job {job_name} is still in progress. Status: {status}")
+            return "Transcribing..."  
+
+    except Exception as e:
+        print(f"Error checking transcription job: {e}")
+        return None
+    
+def refresh_transcription_status(request, job_name, file_id):
+    upload = get_object_or_404(Upload, id=file_id)
+    
+    output_key = upload.output_key
+
+    transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
+    transcription_text = check_transcription_job(transcribe_client, job_name, output_key)
+    
+    response = {
+        "status": "completed" if transcription_text not in ["Transcribing...", None] else transcription_text,
+        "transcription": transcription_text if transcription_text not in ["Transcribing...", None] else ""
+    }
+    return JsonResponse(response)

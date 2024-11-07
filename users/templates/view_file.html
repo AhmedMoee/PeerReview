@@ -2,6 +2,7 @@
 {% load widget_tweaks %}
 {% block content %}
 <h1>Viewing File: {{ upload_name }}</h1>
+{% load custom_filters %}
 
 <div class="row">
     <div class="col-lg-8">
@@ -11,7 +12,36 @@
             <iframe src="{{ file_url }}" width="100%" height="800px"></iframe>
         {% elif "text/plain" in file_type %}
             <iframe src="{{ file_url }}" width="100%" height="600px"></iframe>
+        {% elif file_type|is_transcribable %}
+            <h2>Transcription</h2>
+            <button id="refresh-button" class="btn btn-secondary mt-2" onclick="refreshTranscriptionStatus('{{ job_name }}', '{{ file_id }}')">Refresh Status</button>
+            <div id="transcription-text">
+                {% if transcription_text %}
+                    <p>{{ transcription_text }}</p> <!-- Display transcription text -->
+                {% else %}
+                    <p>Transcription still in progress.</p>
+                {% endif %}
+            </div>
+
+            <script>
+                function refreshTranscriptionStatus(jobName, file_id) {
+                    fetch(`/refresh-transcription/${jobName}/${file_id}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const transcriptionDiv = document.getElementById('transcription-text');
+                            if (data.status === "completed") {
+                                transcriptionDiv.innerHTML = `<p>${data.transcription}</p>`;
+                            } else if (data.status === "Transcribing...") {
+                                transcriptionDiv.innerHTML = `<p>Transcription in progress. Come back in a few minutes.</p>`;
+                            } else {
+                                transcriptionDiv.innerHTML = `<p>Transcription failed.</p>`;
+                            }
+                        })
+                        .catch(error => console.error('Error fetching transcription status:', error));
+                }
+            </script>
         {% else %}
+            <p>File type detected: {{ file_type }}</p>
             <p>This file type cannot be displayed directly. You can <a href="{{ file_url }}" download>download it here</a>.</p>
         {% endif %}
     </div>

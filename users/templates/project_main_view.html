@@ -217,5 +217,15 @@
         });
     </script>
 
-    <a href="{% url 'project_list' %}" class="btn btn-secondary mt-3">Back to All Projects</a>
+
+    <!-- projects can be accessed from the dashboard, user profile pages, view all projects page-->
+    {% if 'dashboard' in referer %}
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3" style="background-color: grey;">Home</a>
+    {% elif '/projects' in referer %}
+        <a href="{% url 'project_list' %}" class="btn btn-secondary mt-3" style="background-color: grey;">Back to All Projects</a>
+    {% else %}
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3">Home</a>
+    {% endif %}
+<!--    <a href="{{ referer }}" class="btn btn-secondary mt-3">Back</a>-->
+<!--    <a href="{% url 'project_list' %}" class="btn btn-secondary mt-3">Back to All Projects</a>-->
 {% endblock %}

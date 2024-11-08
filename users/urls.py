@@ -20,8 +20,10 @@ urlpatterns = [
     path('load-messages/<int:project_id>/', views.load_messages, name='load_messages'),    
     path('projects/<str:project_name>/<int:id>/view/<int:file_id>/', views.view_file, name='view_file'),
     path('project/<str:project_name>/<int:project_id>/leave/', views.leave_project, name='leave_project'),
-    path('profile/', views.view_profile, name='view_profile'),
+    # path('profile/', views.view_profile, name='view_profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/<int:user_id>/', views.view_profile, name='view_profile'),
     path('refresh-transcription/<str:job_name>/<int:file_id>/', views.refresh_transcription_status, name='refresh_transcription'),
+    path('search_users/', views.show_all_users, name='search_users'),
+    path('invite/', views.manage_invites, name='manage_invites'),
 ]

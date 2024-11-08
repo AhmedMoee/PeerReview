@@ -211,6 +211,10 @@ def leave_project(request, project_id, project_name):
     return redirect('project_list')
 
 def view_project(request, project_name, id):
+
+    # send user back to where the page they came from
+    referer = request.META.get('HTTP_REFERER', '/')
+
     project = get_object_or_404(Project, id=id)
 
     search_query = request.GET.get('search', '')  # Get search query from the URL
@@ -226,6 +230,7 @@ def view_project(request, project_name, id):
         'project': project,
         'files': uploads,
         'is_owner_or_admin': is_owner_or_admin,
+        'referer': referer,
     }
 
     return render(request, 'project_main_view.html', context)
@@ -562,13 +567,14 @@ def view_profile(request, user_id):
 
 @login_required
 def edit_profile(request):
+    user = get_object_or_404(User, id=request.user.id)
     profile = get_object_or_404(UserProfile, user=request.user)
 
     if request.method == 'POST':
         form = UserProfileForm(request.POST, instance=profile)
         if form.is_valid():
             form.save()
-            return redirect('view_profile')
+            return redirect('view_profile', user_id=user.id)
     else:
         # Prefill the form with the current data from the profile
         form = UserProfileForm(instance=profile)
@@ -645,3 +651,14 @@ def refresh_transcription_status(request, job_name, file_id):
         "transcription": transcription_text if transcription_text not in ["Transcribing...", None] else ""
     }
     return JsonResponse(response)
+
+@login_required
+def show_all_users(request):
+    # Get all users except the logged-in user
+    users = User.objects.exclude(id=request.user.id)
+    return render(request, 'search_users.html', {'users': users})
+
+def manage_invites(request):
+    # add correct logic
+    users = User.objects.all()  # Get all users
+    return render(request, 'search_users.html', {'users': users})

@@ -54,8 +54,13 @@
                 </div>
             </div>
 
-            <!-- Back to Previous Page Button -->
-            <a href="{{ referer }}" class="btn btn-secondary mt-3">Back</a>
+            <!-- using the referer becomings buggy when users view their profile then edit it because it creates a cycle
+            so just send them back to the dashboard -->
+            {% if 'profile/edit' in referer %}
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3" style="background-color: grey;">Home</a>
+            {% else %}
+                <a href="{{ referer }}" class="btn btn-secondary mt-3">Back</a>
+            {% endif %}
 
         </div>
     </div>

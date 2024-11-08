@@ -212,7 +212,7 @@ def leave_project(request, project_id, project_name):
 
 def view_project(request, project_name, id):
 
-    # send user back to where the page they came from
+    # send user back to the page they came from
     referer = request.META.get('HTTP_REFERER', '/')
 
     project = get_object_or_404(Project, id=id)
@@ -660,5 +660,5 @@ def show_all_users(request):
 
 def manage_invites(request):
     # add correct logic
-    users = User.objects.all()  # Get all users
+    users = User.objects.all()
     return render(request, 'search_users.html', {'users': users})

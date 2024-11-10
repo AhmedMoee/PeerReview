@@ -9,8 +9,9 @@
         <ul class="list-group">
             {% for request in pending_requests %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ request.user.username }}
+                    {{ request.user.get_full_name}}
                     <div>
+                        <a href="{% url 'view_profile' request.user.id %}" class="btn btn-outline-info">View Profile</a>
                         <form action="{% url 'approve_join_request' request.id %}" method="post" class="d-inline">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-success">Approve</button>

@@ -42,7 +42,7 @@
 
                     <!-- Action Buttons -->
                     <div>
-                        <a href="{% url 'project_view' project.name project.id %}" class="btn btn-outline-info">View</a>
+                        <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-outline-info">View</a>
 
                         {% if user.is_authenticated and not is_pma_admin %}
                             {% if project.owner == request.user %}
@@ -53,7 +53,7 @@
                                 {% if project.owner == request.user %}
                                     <span class="badge bg-dark">Owner</span>
                                 {% else %}
-                                    <span class="badge bg-success">Already a member</span>
+                                    <span class="badge bg-success">Already a Member</span>
                                     {% if project.owner != request.user %}
                                         <form action="{% url 'leave_project' project.name project.id %}" method="post" class="d-inline-block">
                                             {% csrf_token %}

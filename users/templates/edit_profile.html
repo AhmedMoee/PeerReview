@@ -34,7 +34,7 @@
 
                         <!-- Action Buttons -->
                         <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
-                        <a href="{% url 'view_profile' %}" class="btn btn-secondary mt-3">Cancel</a>
+                        <a href="{% url 'view_profile' user_id=user.id %}" class="btn btn-secondary mt-3">Cancel</a>
                     </form>
                 </div>
             </div>

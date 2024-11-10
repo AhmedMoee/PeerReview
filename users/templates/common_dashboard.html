@@ -27,6 +27,14 @@
                 </div>
             </div>
 
+            <!-- View All Users Section -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">View All Users</h4>
+                    <a href="{% url 'search_users' %}" class="btn btn-secondary w-100">View Users</a>
+                </div>
+            </div>
+
             <!-- Logout Button -->
             <a href="{% url 'logout' %}" class="btn btn-danger w-100 mt-4">Logout</a>
         </div>
@@ -41,7 +49,7 @@
                         <ul class="list-group">
                             {% for project in owned_projects %}
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <a href="{% url 'project_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
+                                    <a href="{% url 'project_main_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
                                     <span class="badge bg-secondary">Owner</span>
                                 </li>
                             {% endfor %}
@@ -60,7 +68,7 @@
                         <ul class="list-group">
                             {% for project in member_projects %}
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <a href="{% url 'project_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
+                                    <a href="{% url 'project_main_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
                                     <span class="badge bg-info">Member</span>
                                 </li>
                             {% endfor %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block content %}
+
+<!-- project_view -> project_uploads -->
+
+<!-- new uploads file page -->
+
+<div class="container mt-5">
+    <h1 class="mb-4"> Upload Files for: {{ project.name }}</h1>
+
+            {% if user.is_authenticated %}
+                {% if user in project.members.all %}
+                    <!-- File Upload Section -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h2 class="h4 mb-0">Upload File</h2>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data" class="mb-3">
+                                {% csrf_token %}
+                                <!-- Display Non-field Errors -->
+                                {% if form.non_field_errors %}
+                                    <div class="alert alert-danger">
+                                        {{ form.non_field_errors }}
+                                    </div>
+                                {% endif %}
+
+                                <!-- Display Name Field with Error Handling -->
+                                <div class="form-group mb-3">
+                                    {{ form.name.label_tag }}
+                                    {{ form.name|add_class:"form-control" }}
+                                    {% if form.name.errors %}
+                                        <div class="text-danger">
+                                            {{ form.name.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="form-group mb-3">
+                                    {{ form.description.label_tag }}
+                                    {{ form.description|add_class:"form-control" }}
+                                </div>
+                                <div class="form-group mb-3">
+                                    {{ form.keywords.label_tag }}
+                                    {{ form.keywords|add_class:"form-control" }}
+                                </div>
+                                <div class="form-group mb-3">
+                                    {{ form.file.label_tag }}
+                                    {{ form.file|add_class:"form-control" }}
+                                </div>
+                                <button type="submit" class="btn btn-primary me-2">Upload</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <p>You are not a member of this project. Please request to join.</p>
+                <form action="{% url 'request_to_join' project.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Request to Join</button>
+                </form>
+            {% endif %}
+
+
+    <!-- Back to Project Button -->
+    <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-secondary mt-4">Back to Project</a>
+</div> <!-- End of Container -->
+{% endblock %}

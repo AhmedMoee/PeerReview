@@ -713,3 +713,25 @@ def manage_invites(request):
     # add correct logic
     users = User.objects.all()
     return render(request, 'search_users.html', {'users': users})
+
+@login_required
+def upvote_project(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    
+    # Check if the user has already upvoted
+    if request.user in project.upvoters.all():
+        # If already upvoted, subtract the upvote and remove the user from upvoters
+        project.upvotes -= 1
+        project.upvoters.remove(request.user)
+        project.save()
+        return JsonResponse({'status': 'removed', 'upvotes': project.upvotes})
+    else:
+        # If not upvoted, add the upvote and add the user to upvoters
+        project.upvotes += 1
+        project.upvoters.add(request.user)
+        project.save()
+        return JsonResponse({'status': 'added', 'upvotes': project.upvotes})
+
+def popular_projects(request):
+    popular_projects = Project.objects.all().order_by('-upvotes')[:10]  
+    return render(request, 'popular_projects.html', {'projects': popular_projects})

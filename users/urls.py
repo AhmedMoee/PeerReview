@@ -26,4 +26,6 @@ urlpatterns = [
     path('refresh-transcription/<str:job_name>/<int:file_id>/', views.refresh_transcription_status, name='refresh_transcription'),
     path('search_users/', views.show_all_users, name='search_users'),
     path('invite/', views.manage_invites, name='manage_invites'),
+    path('project/<int:project_id>/upvote/', views.upvote_project, name='upvote_project'),
+    path('popular_projects/', views.popular_projects, name='popular_projects'),
 ]

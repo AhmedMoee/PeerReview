@@ -36,6 +36,8 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     number_of_reviewers = models.PositiveIntegerField(default=1)
     is_private = models.BooleanField(default=False)
+    upvotes = models.PositiveIntegerField(default=0)
+    upvoters = models.ManyToManyField(User, related_name='upvoted_projects', blank=True)
 
     @property
     def current_reviewers_count(self):

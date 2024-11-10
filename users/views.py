@@ -221,6 +221,7 @@ def deny_join_request(request, request_id):
 
     return redirect('manage_join_requests', project_id=join_request.project.id)
 
+@login_required
 def project_detail(request, project_id):
     project = get_object_or_404(Project, id=project_id)
 
@@ -236,6 +237,7 @@ def project_detail(request, project_id):
 
     return render(request, 'project_detail.html', context)
 
+@login_required
 def leave_project(request, project_id, project_name):
     project = get_object_or_404(Project, id=project_id, name=project_name)
 
@@ -275,6 +277,7 @@ def view_project(request, project_name, id):
 
     return render(request, 'project_main_view.html', context)
 
+@login_required
 def project_upload(request, project_name, id):
     project = get_object_or_404(Project, id=id)
 
@@ -357,6 +360,7 @@ def project_upload(request, project_name, id):
         'transcription_text': transcription_text  ,
     })
 
+@login_required
 def delete_project(request, project_name, id):
     project = get_object_or_404(Project, id=id)
 
@@ -388,6 +392,7 @@ def delete_project(request, project_name, id):
         messages.error(request, f"You don't have permission to delete {project_name}.")
         return redirect('project_main_view', project_name=project.name, id=project.id)
 
+@login_required
 def delete_file(request, project_name, id, file_id):
     project = get_object_or_404(Project, id=id, name=project_name)
     file_obj = get_object_or_404(Upload, id=file_id, project=project)
@@ -417,6 +422,7 @@ def delete_file(request, project_name, id, file_id):
 
     return redirect('project_main_view', project_name=project_name, id=id)
 
+@login_required
 def create_message(request, project_id, user_id):
     if request.method == 'POST':
         content = request.POST.get('content')
@@ -427,6 +433,7 @@ def create_message(request, project_id, user_id):
             return JsonResponse({'status': 'Message sent'})
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
+@login_required
 def load_messages(request, project_id):
     messages = Message.objects.filter(project_id=project_id).order_by('created_at')
     messages_list = [{'content': message.content, 'username':message.user.username} for message in messages]
@@ -483,6 +490,7 @@ import mimetypes  # https://docs.python.org/3/library/mimetypes.html
 from .forms import PromptForm, PromptResponseForm
 from .models import Prompt
 
+@login_required
 def view_file(request, project_name, id, file_id):
     # Get the project based on the project name and ID
     project = get_object_or_404(Project, id=id, name=project_name)
@@ -591,6 +599,7 @@ def view_file(request, project_name, id, file_id):
         # If user doesn't have permission, show an error message
         messages.error(request, "You don't have permission to view this file.")
         return redirect('project_view', project_name=project.name, id=project.id)
+
 @login_required
 def view_profile(request, user_id):
 
@@ -620,6 +629,7 @@ def edit_profile(request):
         form = UserProfileForm(instance=profile)
 
     return render(request, 'edit_profile.html', {'form': form})
+
 
 def start_transcription_job(job_name, file_uri, output_key):
     transcribe_client = boto3.client('transcribe', region_name=AWS_S3_REGION_NAME)
@@ -698,6 +708,7 @@ def show_all_users(request):
     users = User.objects.exclude(id=request.user.id)
     return render(request, 'search_users.html', {'users': users})
 
+@login_required
 def manage_invites(request):
     # add correct logic
     users = User.objects.all()

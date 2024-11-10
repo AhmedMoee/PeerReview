@@ -167,6 +167,9 @@ AUTHENTICATION_BACKEND = (
 
 SOCIALACCOUNT_ADAPTER = 'users.adapter.MySocialAccountAdapter'
 
+from django.urls import reverse_lazy
+
+LOGIN_URL = reverse_lazy('dashboard')
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = "/"
 

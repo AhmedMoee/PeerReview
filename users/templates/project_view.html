@@ -1,58 +1,59 @@
 {% extends "base.html" %}
 {% load widget_tweaks %}
+{% load socialaccount %}
 {% block content %}
 <div class="container mt-5">
     <h1 class="mb-4">{{ project.name }}</h1>
 
-    <!-- Section to view Rubric and Review Guidelines -->
-    <div class="row">
-        <div class="col-lg-8"> <!-- Main content area -->
-            <!-- View Rubric and Review Guidelines Section -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h2 class="h4 mb-0">Project Resources</h2>
-                </div>
-                <div class="card-body">
-                    <!-- Rubric Link or Message -->
-                    {% if project.rubric %}
-                        <p><strong>Rubric:</strong> <a href="{{ project.rubric.url }}" target="_blank">Download Rubric</a></p>
-                    {% else %}
-                        <p><strong>Rubric:</strong> Not uploaded yet.</p>
-                    {% endif %}
-
-                    <!-- Review Guidelines Link or Message -->
-                    {% if project.review_guidelines %}
-                        <p><strong>Review Guidelines:</strong> <a href="{{ project.review_guidelines.url }}" target="_blank">Download Guidelines</a></p>
-                    {% else %}
-                        <p><strong>Review Guidelines:</strong> Not uploaded yet.</p>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Form to upload or update Rubric and Review Guidelines -->
-            {% if user == project.owner %}
+    {% if user.is_authenticated %}
+        <!-- Section to view Rubric and Review Guidelines -->
+        <div class="row">
+            <div class="col-lg-8"> <!-- Main content area -->
+                <!-- View Rubric and Review Guidelines Section -->
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">
-                        <h2 class="h4 mb-0">Upload Rubric or Review Guidelines</h2>
+                        <h2 class="h4 mb-0">Project Resources</h2>
                     </div>
                     <div class="card-body">
-                        <form method="post" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            <div class="form-group mb-3">
-                                <label for="id_rubric">Upload Rubric:</label>
-                                <input type="file" name="rubric" id="id_rubric" class="form-control" />
-                            </div>
-                            <div class="form-group mb-3">
-                                <label for="id_review_guidelines">Upload Review Guidelines:</label>
-                                <input type="file" name="review_guidelines" id="id_review_guidelines" class="form-control" />
-                            </div>
-                            <button type="submit" class="btn btn-primary">Upload</button>
-                        </form>
+                        <!-- Rubric Link or Message -->
+                        {% if project.rubric %}
+                            <p><strong>Rubric:</strong> <a href="{{ project.rubric.url }}" target="_blank">Download Rubric</a></p>
+                        {% else %}
+                            <p><strong>Rubric:</strong> Not uploaded yet.</p>
+                        {% endif %}
+
+                        <!-- Review Guidelines Link or Message -->
+                        {% if project.review_guidelines %}
+                            <p><strong>Review Guidelines:</strong> <a href="{{ project.review_guidelines.url }}" target="_blank">Download Guidelines</a></p>
+                        {% else %}
+                            <p><strong>Review Guidelines:</strong> Not uploaded yet.</p>
+                        {% endif %}
                     </div>
                 </div>
-            {% endif %}
 
-            {% if user.is_authenticated %}
+                <!-- Form to upload or update Rubric and Review Guidelines -->
+                {% if user == project.owner %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h2 class="h4 mb-0">Upload Rubric or Review Guidelines</h2>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <div class="form-group mb-3">
+                                    <label for="id_rubric">Upload Rubric:</label>
+                                    <input type="file" name="rubric" id="id_rubric" class="form-control" />
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="id_review_guidelines">Upload Review Guidelines:</label>
+                                    <input type="file" name="review_guidelines" id="id_review_guidelines" class="form-control" />
+                                </div>
+                                <button type="submit" class="btn btn-primary">Upload</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
+
                 {% if user in project.members.all %}
                     <!-- File Upload Section -->
                     <div class="card mb-4">
@@ -101,44 +102,46 @@
                 {% if is_pma_admin or user in project.members.all %}
                     <a href="{% url 'project_uploads' project.name project.id %}" class="btn btn-secondary mb-4">View Uploads</a>
                 {% endif %}
-            {% else %}
-                <p>You are not a member of this project. Please request to join.</p>
-                <form action="{% url 'request_to_join' project.id %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary">Request to Join</button>
-                </form>
-            {% endif %}
-        </div> <!-- End of Main Content Area -->
 
-        <div class="col-lg-4"> <!-- Chat Section -->
-            <!-- Project Chat Section -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h2 class="h4 mb-0">Project Chat</h2>
-                </div>
-                <div class="card-body">
-                    <!-- Chat Log -->
-                    <div id="chat-log" style="
-                        height: 300px;
-                        overflow-y: scroll;
-                        border: 1px solid #ced4da;
-                        padding: 15px;
-                        background-color: #f8f9fa;
-                        border-radius: .25rem;
-                        margin-bottom: 20px;">
-                    </div>
-
-                    <!-- Chat Form -->
-                    <form id="message-form" method="post" action="{% url 'create_message' project.id user.id %}">
+                {% if not user in project.members.all %}
+                    <p>You are not a member of this project. Please request to join.</p>
+                    <form action="{% url 'request_to_join' project.id %}" method="post">
                         {% csrf_token %}
-                        <textarea id="chat-message-input" name="content" placeholder="Your next message..." rows="3" class="form-control mb-3"></textarea>
-                        <button type="submit" class="btn btn-primary w-100">Send</button>
+                        <button type="submit" class="btn btn-primary">Request to Join</button>
                     </form>
+                {% endif %}
+            </div> <!-- End of Main Content Area -->
 
-                    <!-- Refresh Button -->
-                    <button id="refresh-button" class="btn btn-secondary w-100 mt-3">Refresh Messages</button>
+            <div class="col-lg-4"> <!-- Chat Section -->
+                <!-- Project Chat Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h4 mb-0">Project Chat</h2>
+                    </div>
+                    <div class="card-body">
+                        <!-- Chat Log -->
+                        <div id="chat-log" style="
+                            height: 300px;
+                            overflow-y: scroll;
+                            border: 1px solid #ced4da;
+                            padding: 15px;
+                            background-color: #f8f9fa;
+                            border-radius: .25rem;
+                            margin-bottom: 20px;">
+                        </div>
+
+                        <!-- Chat Form -->
+                        <form id="message-form" method="post" action="{% url 'create_message' project.id user.id %}">
+                            {% csrf_token %}
+                            <textarea id="chat-message-input" name="content" placeholder="Your next message..." rows="3" class="form-control mb-3"></textarea>
+                            <button type="submit" class="btn btn-primary w-100">Send</button>
+                        </form>
+
+                        <!-- Refresh Button -->
+                        <button id="refresh-button" class="btn btn-secondary w-100 mt-3">Refresh Messages</button>
+                    </div>
                 </div>
-            </div>
+
                 <!-- Project Members Section -->
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">
@@ -163,9 +166,9 @@
                             <!-- Display Other Project Members -->
                             {% if project.members.exists %}
                                 {% for member in project.members.all %}
-                                    {% if member != project.owner %}  <!-- Exclude owner if already listed above -->
+                                    {% if member != project.owner %}
                                         <li class="list-group-item">
-                                            <a> <!-- figure out how to link user profiles -->
+                                            <a>
                                                 {% if member.get_full_name %}
                                                     {{ member.get_full_name }}
                                                 {% elif member.first_name %}
@@ -183,48 +186,33 @@
                         </ul>
                     </div>
                 </div>
+            </div>
+        </div> <!-- End of Row -->
+
+    {% else %}
+        <!-- Non-authenticated User Section -->
+        <div class="row">
+            <div class="col-lg-8">
+                <h2>{{ project.name }}</h2>
+                <p><strong>Owner:</strong> {{ project.owner.username }}</p>
+                <p>{{ project.description }}</p>
+                <a href="{% provider_login_url 'google' %}?next=/" class="btn btn-primary mb-4">
+                    Login with Google
+                </a> 
+            </div>
         </div>
-    </div> <!-- End of Row -->
+    {% endif %}
 
-    <!-- jQuery and AJAX for Chat -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        function loadMessages() {
-            $.getJSON('{% url "load_messages" project.id %}', function(data) {
-                $('#chat-log').empty();
-                data.messages.forEach(function(message) {
-                    $('#chat-log').append('<div><strong>' + message.username + ':</strong> ' + message.content + '</div>');
-                });
-            });
-        }
+    {% if is_pma_admin %}
+        <!-- PMA Admins go back to their dashboard -->
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-4">Back to Dashboard</a>
+    {% elif not user.is_authenticated %}
+        <!-- Anonymous users go back to the anonymous dashboard -->
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-4">Back to Home</a>
+    {% else %}
+        <!-- Common users go back to the project list -->
+        <a href="{% url 'project_list' %}" class="btn btn-secondary mt-4">Back to Projects</a>
+    {% endif %}
 
-        $(document).ready(function() {
-            // Initial load of messages
-            loadMessages();
-
-            // Refresh button handler
-            $('#refresh-button').on('click', function() {
-                loadMessages();
-            });
-
-            // Form submission handler
-            $('#message-form').on('submit', function(event) {
-                event.preventDefault();
-                const formData = $(this).serialize();
-
-                $.post($(this).attr('action'), formData, function(response) {
-                    if (response.status === 'Message sent') {
-                        $('#chat-message-input').val('');
-                        loadMessages(); // Reload messages after sending
-                    } else {
-                        console.error(response.error);
-                    }
-                });
-            });
-        });
-    </script>
-
-    <!-- Back to Projects Button -->
-    <a href="{% url 'project_list' %}" class="btn btn-secondary mt-4">Back to Projects</a>
 </div> <!-- End of Container -->
 {% endblock %}

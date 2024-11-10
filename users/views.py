@@ -36,12 +36,12 @@ def dashboard(request):
 
         if request.user.groups.filter(name='PMA Administrators').exists():
             # Render the PMA Administrator dashboard
-            return render(request, 'pma_admin_dashboard.html', {'user_name': user_name})
+            return pma_dashboard(request)
         else:
             # Render the Common User dashboard
             return common_dashboard(request)
     # if not authenticated, anon user, redirect to home page (with Google login option)
-    return render(request, 'anonymous_dashboard.html', {'projects': projects})
+    return anonymous_dashboard(request)
     
 @login_required
 def common_dashboard(request):
@@ -54,6 +54,45 @@ def common_dashboard(request):
         'owned_projects': owned_projects,
         'member_projects': member_projects,
     })
+    
+#display project list helper method    
+def get_projects_context(request):
+    projects = Project.objects.all()
+    is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
+    sort_by = request.GET.get('sort', '-created_at')
+    
+    if sort_by == 'due_date':
+        projects = projects.order_by(F('due_date').asc(nulls_last=True))
+    elif sort_by == '-due_date':
+        projects = projects.order_by('-due_date')
+    elif sort_by == 'created_at':
+        projects = projects.order_by('created_at')
+    elif sort_by == '-created_at':
+        projects = projects.order_by('-created_at')
+
+    search_query = request.GET.get('q', '')
+    if search_query:
+        projects = projects.filter(
+            Q(description__icontains=search_query) |
+            Q(category__icontains=search_query)
+        )
+
+    return {
+        'projects': projects,
+        'sort_by': sort_by,
+        'is_pma_admin': is_pma_admin
+    }
+
+@login_required
+def pma_dashboard(request):
+    user_name = request.user.first_name or request.user.username
+    context = get_projects_context(request)
+    context['user_name'] = user_name
+    return render(request, 'pma_admin_dashboard.html', context)
+
+def anonymous_dashboard(request):
+    context = get_projects_context(request)
+    return render(request, 'anonymous_dashboard.html', context)
 
 @login_required
 def settings(request):
@@ -127,6 +166,7 @@ def project_list(request):
         'project_permissions': project_permissions
     })
 
+@login_required
 def request_to_join(request, project_id):
     project = get_object_or_404(Project, id=project_id)
 
@@ -207,6 +247,7 @@ def leave_project(request, project_id, project_name):
         messages.error(request, 'You are not a member of this project.')
     return redirect('project_list')
 
+@login_required
 def project_uploads(request, project_name, id):
     project = get_object_or_404(Project, id=id)
     

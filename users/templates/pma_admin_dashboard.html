@@ -7,8 +7,8 @@
     <p>You can manage all projects and files here.</p>
 
     <div class="mt-4">
-        <h3> View All Projects</h3>
-        <a href="{% url 'project_list' %}" class="custom-btn"> View Projects </a>
+        <!-- Include the Partial Template for the Project List -->
+        {% include 'partials/project_list.html' with projects=projects project_status=project_status project_permissions=project_permissions sort_by=sort_by search_query=search_query %}
     </div>
 
     <a href="{% url 'logout' %}" class="btn btn-danger mt-4">

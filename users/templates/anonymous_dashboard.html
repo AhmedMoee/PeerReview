@@ -14,15 +14,10 @@
         Login with Google
     </a>
 
-    <div class="project-list">
-        {% for project in projects %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">{{ project.name }}</h5>
-                    <p class="card-text">{{ project.description }}</p>
-                </div>
-            </div>
-        {% endfor %}
+    <div class="mt-4">
+        <!-- Include the Partial Template for the Project List -->
+        {% include 'partials/project_list.html' with projects=projects project_status=project_status project_permissions=project_permissions sort_by=sort_by search_query=search_query %}
     </div>
+    
 </div>
 {% endblock %}

@@ -819,3 +819,59 @@ def invitation_list(request):
     return render(request, 'view_invites.html', {
         'pending_invitations': pending_invitations
     })
+
+
+@login_required
+def upvote_project(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    
+    # Check if the user has already upvoted
+    if request.user in project.upvoters.all():
+        # If already upvoted, subtract the upvote and remove the user from upvoters
+        project.upvotes -= 1
+        project.upvoters.remove(request.user)
+        project.save()
+        return JsonResponse({'status': 'removed', 'upvotes': project.upvotes})
+    else:
+        # If not upvoted, add the upvote and add the user to upvoters
+        project.upvotes += 1
+        project.upvoters.add(request.user)
+        project.save()
+        return JsonResponse({'status': 'added', 'upvotes': project.upvotes})
+
+def popular_projects(request):
+    projects = Project.objects.all().order_by('-upvotes')  
+
+    s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+    bucket_name = AWS_STORAGE_BUCKET_NAME
+
+    for project in projects:
+        project.latest_upload = Upload.objects.filter(project=project).order_by('-uploaded_at').first()
+
+        if project.latest_upload:
+            upload = project.latest_upload
+            file_key = f"{project.name}/{upload.file}"  
+
+            mime_type, _ = mimetypes.guess_type(file_key)
+
+            if mime_type not in ['image/jpeg', 'text/plain', 'application/pdf', 'video/mp4']:
+                disposition_type = 'attachment'
+            else:
+                disposition_type = 'inline'
+
+            file_url = s3.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': bucket_name,
+                    'Key': file_key,
+                    'ResponseContentType': mime_type,
+                    'ResponseContentDisposition': disposition_type
+                },
+                ExpiresIn=3600
+            )
+
+            upload.signed_url = file_url
+            file_type, _ = mimetypes.guess_type(project.latest_upload.file.name)
+            project.latest_upload.file_type = file_type
+        
+    return render(request, 'popular_projects.html', {'projects': projects})

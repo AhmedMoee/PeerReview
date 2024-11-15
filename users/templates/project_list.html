@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load custom_filters %}
+{% load static %}
 
 {% block content %}
     <h1>All Projects</h1>
@@ -45,6 +46,13 @@
                         <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-outline-info">View</a>
 
                         {% if user.is_authenticated and not is_pma_admin %}
+
+                            <!-- Upvote Button -->
+                            <button class="btn" onclick="upvoteProject('{{ project.id }}')" id="upvote-button-{{ project.id }}">
+                                <i class="fas fa-arrow-up" id="upvote-icon-{{ project.id }}"></i>
+                            </button>
+                            <span id="upvote-count-{{ project.id }}">{{ project.upvotes }}</span>
+
                             {% if project.owner == request.user %}
                                 <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-outline-info">Manage Requests</a>
                             {% endif %}
@@ -96,3 +104,4 @@
     {% endif %}
 {% endblock %}
 
+<script src="{% static 'actions.js' %}"></script>

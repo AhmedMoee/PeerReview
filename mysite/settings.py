@@ -53,8 +53,8 @@ SOCIALACCOUNT_PROVIDERS = {
     
     "google": {
          'APP': {
-            'client_id': '25705040059-9ajc1fkg9ofe4b2defll413nv8ujks4p.apps.googleusercontent.com',  # Replace with your actual Client ID
-            'secret': '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',  # Replace with your actual Client Secret
+            'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
+            'secret': os.getenv('GOOGLE_SECRET'),  # Replace with your actual Client Secret
             'key': ''
         },
         "SCOPE": [

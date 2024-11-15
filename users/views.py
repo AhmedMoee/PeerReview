@@ -122,7 +122,7 @@ def project_list(request):
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
     sort_by = request.GET.get('sort', '-created_at')
     if sort_by == 'due_date' :
-        project = projects.order_by(F('due_date').asc(nulls_last=True))
+        projects = projects.order_by(F('due_date').asc(nulls_last=True))
     elif sort_by == '-due_date':
         projects = projects.order_by('-due_date')
     elif sort_by == 'created_at' :

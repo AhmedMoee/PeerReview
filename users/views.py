@@ -733,5 +733,38 @@ def upvote_project(request, project_id):
         return JsonResponse({'status': 'added', 'upvotes': project.upvotes})
 
 def popular_projects(request):
-    popular_projects = Project.objects.all().order_by('-upvotes')[:10]  
-    return render(request, 'popular_projects.html', {'projects': popular_projects})
+    projects = Project.objects.all().order_by('-upvotes')  
+
+    s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+    bucket_name = AWS_STORAGE_BUCKET_NAME
+
+    for project in projects:
+        project.latest_upload = Upload.objects.filter(project=project).order_by('-uploaded_at').first()
+
+        if project.latest_upload:
+            upload = project.latest_upload
+            file_key = f"{project.name}/{upload.file}"  
+
+            mime_type, _ = mimetypes.guess_type(file_key)
+
+            if mime_type not in ['image/jpeg', 'text/plain', 'application/pdf', 'video/mp4']:
+                disposition_type = 'attachment'
+            else:
+                disposition_type = 'inline'
+
+            file_url = s3.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': bucket_name,
+                    'Key': file_key,
+                    'ResponseContentType': mime_type,
+                    'ResponseContentDisposition': disposition_type
+                },
+                ExpiresIn=3600
+            )
+
+            upload.signed_url = file_url
+            file_type, _ = mimetypes.guess_type(project.latest_upload.file.name)
+            project.latest_upload.file_type = file_type
+        
+    return render(request, 'popular_projects.html', {'projects': projects})

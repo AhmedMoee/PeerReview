@@ -52,3 +52,19 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+function refreshTranscriptionStatus(jobName, file_id) {
+    fetch(`/refresh-transcription/${jobName}/${file_id}`)
+        .then(response => response.json())
+        .then(data => {
+            const transcriptionDiv = document.getElementById('transcription-text');
+            if (data.status === "completed") {
+                transcriptionDiv.innerHTML = `<p>${data.transcription}</p>`;
+            } else if (data.status === "Transcribing...") {
+                transcriptionDiv.innerHTML = `<p>Transcription in progress. Come back in a few minutes.</p>`;
+            } else {
+                transcriptionDiv.innerHTML = `<p>Transcription failed.</p>`;
+            }
+        })
+        .catch(error => console.error('Error fetching transcription status:', error));
+}

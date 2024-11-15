@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Your Pending Invitations</h2>
+
+{% if pending_invitations %}
+    <ul class="list-group">
+        {% for invite in pending_invitations %}
+            <li class="list-group-item">
+                <strong>{{ invite.invited_by.username }}</strong> has invited you to join 
+                <strong>{{ invite.project.name }}</strong>.
+
+                <form method="post" action="{% url 'handle_invitation' invite.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="accept" class="btn btn-success">Accept</button>
+                    <button type="submit" name="action" value="decline" class="btn btn-danger">Decline</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>You have no pending invitations.</p>
+{% endif %}
+
+<a href="{% url 'dashboard' %}" class="btn btn-primary mt-3">Back to Dashboard</a>
+{% endblock %}

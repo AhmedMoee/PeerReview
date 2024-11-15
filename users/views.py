@@ -422,15 +422,36 @@ def delete_file(request, project_name, id, file_id):
 
     return redirect('project_main_view', project_name=project_name, id=id)
 
+# @login_required
+# def create_message(request, project_id, user_id):
+#     if request.method == 'POST':
+#         content = request.POST.get('content')
+#         if content:
+#             user = get_object_or_404(User, id=user_id)
+#             project = get_object_or_404(Project, id=project_id)
+#             Message.objects.create(content=content, project=project, user=user)
+#             return JsonResponse({'status': 'Message sent'})
+#     return JsonResponse({'error': 'Invalid request'}, status=400)
+
 @login_required
-def create_message(request, project_id, user_id):
+def create_message(request, project_id):
     if request.method == 'POST':
         content = request.POST.get('content')
         if content:
-            user = get_object_or_404(User, id=user_id)
             project = get_object_or_404(Project, id=project_id)
-            Message.objects.create(content=content, project=project, user=user)
-            return JsonResponse({'status': 'Message sent'})
+            message = Message.objects.create(content=content, project=project, user=request.user)
+            return JsonResponse({
+                'status': 'Message sent',
+                'message': {
+                    'id': message.id,
+                    'content': message.content,
+                    'created_at': message.created_at.isoformat(),
+                    'user': {
+                        'id': request.user.id,
+                        'username': request.user.username
+                    }
+                }
+            })
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @login_required
@@ -708,8 +729,93 @@ def show_all_users(request):
     users = User.objects.exclude(id=request.user.id)
     return render(request, 'search_users.html', {'users': users})
 
+from .models import ProjectInvitation
 @login_required
 def manage_invites(request):
     # add correct logic
-    users = User.objects.all()
-    return render(request, 'search_users.html', {'users': users})
+    # users = User.objects.all()
+    # return render(request, 'search_users.html', {'users': users})
+    if request.method == 'POST':
+        project_id = request.POST.get('project_id')
+        user_id = request.POST.get('user_id')
+        
+        project = get_object_or_404(Project, id=project_id, owner=request.user)
+        invited_user = get_object_or_404(User, id=user_id)
+
+        # Check if user is already a member
+        if project.members.filter(id=user_id).exists():
+            messages.error(request, f'{invited_user.username} is already a member of this project.')
+            return redirect('project_detail', project_id=project_id)
+
+        # Check if there's already a pending invitation
+        existing_invitation = ProjectInvitation.objects.filter(
+            project=project,
+            invited_user=invited_user,
+            status='PENDING'
+        ).first()
+
+        if existing_invitation:
+            messages.warning(request, f'An invitation has already been sent to {invited_user.username}.')
+        else:
+            ProjectInvitation.objects.create(
+                project=project,
+                invited_by=request.user,
+                invited_user=invited_user
+            )
+            messages.success(request, f'Invitation sent to {invited_user.username} for project {project.name}.')
+
+        return redirect('search_users')
+    
+
+@login_required
+def select_project_for_invite(request, user_id):
+    invited_user = get_object_or_404(User, id=user_id)
+    user_projects = Project.objects.filter(owner=request.user)
+    
+    return render(request, 'select_project.html', {
+        'invited_user': invited_user,
+        'user_projects': user_projects
+    })
+
+
+from datetime import datetime
+@login_required
+def handle_invitation(request, invitation_id):
+    invitation = get_object_or_404(
+        ProjectInvitation,
+        id=invitation_id,
+        invited_user=request.user,
+        status='PENDING'
+    )
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'accept':
+            invitation.project.members.add(request.user)
+            # ProjectMembership.objects.create(
+            #     user=request.user,
+            #     project=invitation.project,
+            #     role='MEMBER'
+            # )
+            invitation.status = 'ACCEPTED'
+            messages.success(request, f'You have joined {invitation.project.name}.')
+        elif action == 'decline':
+            invitation.status = 'DECLINED'
+            messages.info(request, f'You have declined the invitation to {invitation.project.name}.')
+        
+        invitation.response_date = datetime.now()
+        invitation.save()
+
+    return redirect('view_invites')
+
+@login_required
+def invitation_list(request):
+    pending_invitations = ProjectInvitation.objects.filter(
+        invited_user=request.user,
+        status='PENDING'
+    ).select_related('project', 'invited_by')
+    
+    return render(request, 'view_invites.html', {
+        'pending_invitations': pending_invitations
+    })

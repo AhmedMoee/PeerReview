@@ -16,7 +16,7 @@ urlpatterns = [
     path('projects/<str:project_name>/<int:id>/upload/', views.project_upload, name='project_upload'),
     path('projects/<str:project_name>/<int:id>/delete/', views.delete_project, name='delete_project'),
     path('projects/<str:project_name>/<int:id>/delete-file/<int:file_id>/', views.delete_file, name='delete_file'),
-    path('create-message/<int:project_id>/<int:user_id>/', views.create_message, name='create_message'),
+    path('create-message/<int:project_id>/', views.create_message, name='create_message'),
     path('load-messages/<int:project_id>/', views.load_messages, name='load_messages'),    
     path('projects/<str:project_name>/<int:id>/view/<int:file_id>/', views.view_file, name='view_file'),
     path('project/<str:project_name>/<int:project_id>/leave/', views.leave_project, name='leave_project'),
@@ -26,4 +26,7 @@ urlpatterns = [
     path('refresh-transcription/<str:job_name>/<int:file_id>/', views.refresh_transcription_status, name='refresh_transcription'),
     path('search_users/', views.show_all_users, name='search_users'),
     path('invite/', views.manage_invites, name='manage_invites'),
+    path('users/<int:user_id>/select-project/', views.select_project_for_invite, name='select_project_for_invite'),
+    path('invitations/', views.invitation_list, name='view_invites'),
+    path('invitation/<int:invitation_id>/handle/', views.handle_invitation, name='handle_invitation'),
 ]

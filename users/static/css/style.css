@@ -25,3 +25,10 @@ a {
 .filled {
     color: green;  /* Fill the upvote arrow with green color */
 }
+
+#discussion-content {
+    display: block; /* Initially visible */
+}
+.hidden {
+    display: none; /* Completely hide the element */
+}

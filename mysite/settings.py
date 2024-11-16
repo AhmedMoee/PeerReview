@@ -24,7 +24,7 @@ load_dotenv()
 SECRET_KEY = 'django-insecure-+!r0i(emln-g5)ous&knffqw2l@b@x26dowy^y50#mm*swjp1)'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'uva-cs-3240-project-b-10-7d152fd5a130.herokuapp.com']
 
@@ -50,8 +50,13 @@ INSTALLED_APPS = [
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
-    
+
     "google": {
+         'APP': {
+            'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
+            'secret': os.getenv('GOOGLE_SECRET'),  # Replace with your actual Client Secret
+            'key': ''
+        },
         "SCOPE": [
             'profile',
             'email'
@@ -59,6 +64,17 @@ SOCIALACCOUNT_PROVIDERS = {
         'AUTH_PARAMS': {'access_type': 'online'}
     }
 }
+
+# SOCIALACCOUNT_PROVIDERS = {
+#
+#     "google": {
+#         "SCOPE": [
+#             'profile',
+#             'email'
+#         ],
+#         'AUTH_PARAMS': {'access_type': 'online'}
+#     }
+# }
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -167,7 +183,10 @@ AUTHENTICATION_BACKEND = (
 
 SOCIALACCOUNT_ADAPTER = 'users.adapter.MySocialAccountAdapter'
 
-LOGIN_REDIRECT_URL = '/dashboard/'
+from django.urls import reverse_lazy
+
+LOGIN_URL = reverse_lazy('dashboard')
+LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = "/"
 
 # AWS Settings
@@ -176,7 +195,7 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_SIGNATURE_NAME = os.getenv('AWS_S3_SIGNATURE_NAME')
 AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
-AWS_DEFAULT_ACL = 'public-read'
+# AWS_DEFAULT_ACL = 'public-read'
 AWS_S3_VERITY = True
 
 # Use S3 as the default file storage backend

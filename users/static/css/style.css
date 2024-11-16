@@ -21,3 +21,7 @@ a {
     color: #333; /* Optional: change text color on hover */
     border-color: #b3b3b3;
 }
+
+.filled {
+    color: green;  /* Fill the upvote arrow with green color */
+}

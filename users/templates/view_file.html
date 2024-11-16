@@ -1,83 +1,170 @@
 {% extends "base.html" %}
+{% load widget_tweaks %}
+{% load static %}
 
 {% block content %}
 <h1>Viewing File: {{ upload_name }}</h1>
+{% load custom_filters %}
 
-<div class="col-lg-4">
-    <h3>File Details</h3>
-    <p><strong>Title:</strong> {{ upload_name }}</p>
-    <p><strong>Description:</strong> {{ upload_description }}</p>
-    <p><strong>Keywords:</strong> {{ upload_keywords }}</p>
-    <p><strong>Uploaded At:</strong> {{ uploaded_at }}</p>
-</div>
-
-<div class="row">
-    <div class="col-lg-8">
+<div class="row justify-content-center">
+    <div class="col-lg-8 text-center">
         {% if "image/jpeg" in file_type or "image/png" in file_type %}
             <img src="{{ file_url }}" alt="{{ upload_name }}" style="max-width: 100%; height: auto;">
         {% elif "application/pdf" in file_type %}
             <iframe src="{{ file_url }}" width="100%" height="800px"></iframe>
         {% elif "text/plain" in file_type %}
             <iframe src="{{ file_url }}" width="100%" height="600px"></iframe>
+        {% elif file_type|is_transcribable and "video/mp4" in file_type %} <!-- Change code as more file types are updated -->
+            <video style="max-width: 100%; height: 500px;" controls>
+                <source src="{{ file_url }}" type="video/mp4">
+            </video>
+            <h2>Transcription</h2>
+            <button id="refresh-button" class="btn btn-secondary mt-2" onclick="refreshTranscriptionStatus('{{ job_name }}', '{{ file_id }}')">Refresh Status</button>
+            <div id="transcription-text">
+                {% if transcription_text %}
+                    <p>{{ transcription_text }}</p> <!-- Display transcription text -->
+                {% else %}
+                    <p>Transcription still in progress.</p>
+                {% endif %}
+            </div>
         {% else %}
+            <p>File type detected: {{ file_type }}</p>
             <p>This file type cannot be displayed directly. You can <a href="{{ file_url }}" download>download it here</a>.</p>
         {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="file-detail-section mb-4 p-4 border rounded bg-light" >
+            <h3 class="mb-3">File Details</h3>
+            <p><strong>Title:</strong> {{ upload_name }}</p>
+            <p><strong>Description:</strong> {{ upload_description }}</p>
+            <p><strong>Keywords:</strong> {{ upload_keywords }}</p>
+            <p><strong>Uploaded At:</strong> {{ uploaded_at }}</p>
+        </div>
+
+        {% if request.user == project.owner %}
+        <div class="update-metadata mb-4 p-4 border rounded bg-light" >
+            <h3>Update File Details</h3>
+                <form method="post" enctype="multipart/form-data" class="mb-3">
+                    {% csrf_token %}
+                    <!-- Display Non-field Errors -->
+                    {% if metadata_form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ metadata_form.non_field_errors }}
+                    </div>
+                    {% endif %}
+                    <!-- Display Name Field with Error Handling -->
+                    <div class="form-group mb-3">
+                        <strong>Title:</strong>
+<!--                        <strong>{{ metadata_form.name.label_tag }}</strong>-->
+                        {{ metadata_form.name|add_class:"form-control" }}
+                        {% if metadata_form.name.errors %}
+                        <div class="text-danger">
+                            {{ metadata_form.name.errors|join:", " }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group mb-3">
+                        <strong>{{ metadata_form.description.label_tag }}</strong>
+                        {{ metadata_form.description|add_class:"form-control" }}
+                    </div>
+                    <div class="form-group mb-3">
+                        <strong>{{ metadata_form.keywords.label_tag }}</strong>
+                        {{ metadata_form.keywords|add_class:"form-control" }}
+                    </div>
+<!--                    {{ metadata_form.as_p }}  &lt;!&ndash; Renders form fields in a more compact paragraph format &ndash;&gt;-->
+                    <button type="submit" name="edit_metadata" class="btn btn-primary btn-sm mt-2">Save</button>
+                </form>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 
 <hr class="my-4">
 
-<div class="prompt-section">
-    <h3>Discussion</h3>
+{% include 'partials/prompts_partial.html' %}
 
-    <!-- Add Prompt Form -->
-    <div class="mb-4">
-        <form method="post" class="d-flex flex-column align-items-start">
-            {% csrf_token %}
-            {{ prompt_form.content}}
-            <button type="submit" name="add_prompt" class="btn btn-primary mt-2">Add Prompt</button>
-        </form>
-    </div>
+<a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-secondary mt-3">Back to Project View</a>
 
-    <!-- Display Prompts and Responses -->
-    <div class="prompts-container">
-        {% for prompt in prompts %}
-            <div class="prompt-card card mb-3">
-                <div class="card-header">
-                    <strong>{{ prompt.content }}:</strong>
-                    <small class="text-muted float-end">{{ prompt.created_at|date:"F j, Y, g:i a" }}</small>
-                </div>
-                <div class="card-body">
-                    <!-- Responses to this Prompt -->
-                    <h6>Responses:</h6>
-                    <ul class="list-group list-group-flush mb-3">
-                        {% for response in prompt.responses.all %}
-                            <li class="list-group-item">
-                                <strong>{{ response.created_by.username }}:</strong> {{ response.content }}
-                                <small class="text-muted float-end">{{ response.created_at|date:"F j, Y, g:i a" }}</small>
-                            </li>
-                        {% empty %}
-                            <li class="list-group-item text-muted">No responses yet.</li>
-                        {% endfor %}
-                    </ul>
+{% endblock %}
 
-                    <!-- Add Response Form -->
-                    <form method="post" class="mt-2 d-flex align-items-bottom" style="max-width: 500px;">
-                        {% csrf_token %}
-                        <div class="me-2 flex-grow-1">
-                            {{ response_form.content }}
-                        </div>
-                        <input type="hidden" name="prompt_id" value="{{ prompt.id }}">
-                        <button type="submit" name="add_response" class="btn btn-secondary btn-sm" style="width: auto; height: 30px">Reply</button>
-                    </form>
-                </div>
-            </div>
-        {% empty %}
-            <p class="text-muted">No prompts available for this file.</p>
-        {% endfor %}
-    </div>
-</div>
-
-<a href="{% url 'project_uploads' project.name project.id %}" class="btn btn-secondary mt-3">Back to Uploads</a>
-
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        console.log("JavaScript is working on this page");
+    
+        // Handle Add Prompt Form Submission
+        $(document).on('submit', '#add-prompt-form', function(e) {
+            e.preventDefault(); // Prevent the default form submission behavior
+            console.log('Add Prompt form intercepted by AJAX'); // Debugging log
+    
+            const form = $(this);
+            $.ajax({
+                type: form.attr('method'),
+                url: form.attr('action'),
+                data: form.serialize(),
+                success: function(response) {
+                    // Update the entire prompt section with the new HTML
+                    $('#prompt-section').html(response.html);
+                    form[0].reset(); // Reset the form fields
+                },
+                error: function(xhr) {
+                    console.error('Error submitting prompt:', xhr);
+                    alert('There was an error submitting the prompt. Please try again.');
+                }
+            });
+        });
+    
+        // Handle Add Response Form Submission
+        $(document).on('submit', '.add-response-form', function(e) {
+            e.preventDefault(); // Prevent the default form submission behavior
+            console.log('Add Response form intercepted by AJAX'); // Debugging log
+    
+            const form = $(this);
+            $.ajax({
+                type: form.attr('method'),
+                url: form.attr('action'),
+                data: form.serialize(),
+                success: function(response) {
+                    // Update the entire prompt section with the new HTML
+                    $('#prompt-section').html(response.html);
+                    form[0].reset(); // Reset the form fields
+                },
+                error: function(xhr) {
+                    console.error('Error submitting response:', xhr);
+                    alert('There was an error submitting the response. Please try again.');
+                }
+            });
+        });
+    
+        // Include CSRF token in AJAX requests
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+    
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!(/^GET|HEAD|OPTIONS|TRACE$/i.test(settings.type)) && !this.crossDomain) {
+                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                }
+            }
+        });
+    });    
+</script>
+<script src="{% static 'actions.js' %}"></script>
 {% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-md-8 offset-md-2">
+            <div class="text-center">
+                <h1>{{ user.username }}'s Profile</h1>
+            </div>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <!-- profile picture placeholder (circle) -->
+                    <div class="text-center mb-4">
+                        <div class="rounded-circle" style="width: 120px; height: 120px; background-color: #dcdcdc; margin: 0 auto;">
+                            <!-- profile picture here if we want to add that feature!-->
+                        </div>
+                    </div>
+                    <h3>About Me</h3>
+                    {% if profile.bio %}
+                        <p>{{ profile.bio }}</p>
+                    {% else %}
+                        <p><em>No bio available yet.</em></p>
+                    {% endif %}
+
+                    <h3>Specializations</h3>
+                    {% if profile.specializations %}
+                        <p>{{ profile.specializations }}</p>
+                    {% else %}
+                        <p><em>No specializations added yet.</em></p>
+                    {% endif %}
+
+                    <h3>Projects Involved</h3>
+                    <ul>
+                        {% for project in projects %}
+                            <li>
+                                <a href="{% url 'project_main_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
+                            </li>
+                        {% empty %}
+                            <li>You are not part of any projects yet.</li>
+                        {% endfor %}
+                    </ul>
+
+                    <h3>Social Links</h3>
+                    <ul class="list-inline">
+                        {% if profile.linkedin %}
+                            <li class="list-inline-item">
+                                <a href="{{ profile.linkedin }}" target="_blank" class="btn btn-outline-primary">LinkedIn</a>
+                            </li>
+                        {% endif %}
+                        {% if profile.github %}
+                            <li class="list-inline-item">
+                                <a href="{{ profile.github }}" target="_blank" class="btn btn-outline-dark">GitHub</a>
+                            </li>
+                        {% endif %}
+                        {% if profile.twitter %}
+                            <li class="list-inline-item">
+                                <a href="{{ profile.twitter }}" target="_blank" class="btn btn-outline-info">Twitter</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+
+                    <!-- Edit Profile Button (only if the logged-in user is the profile owner) -->
+                    {% if user == request.user %}
+                        <a href="{% url 'edit_profile' %}" class="btn btn-primary mt-4">Edit Profile</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- using the referer becomings buggy when users view their profile then edit it because it creates a cycle
+            so just send them back to the dashboard -->
+            {% if 'profile/edit' in referer %}
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3" style="background-color: grey;">Home</a>
+            {% else %}
+                <a href="{{ referer }}" class="btn btn-secondary mt-3">Back</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<script src="{% static 'actions.js' %}"></script>

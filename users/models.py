@@ -3,7 +3,7 @@ from django.utils.timezone import now
 from django.contrib.auth.models import User
 
 CATEGORIES = (
-     ('ARCHITECTURE', 'Architecture'),
+    ('ARCHITECTURE', 'Architecture'),
     ('ARTWORK', 'Artwork'),
     ('BIOLOGY', 'Biology'),
     ('BUSINESS', 'Business'),
@@ -36,6 +36,8 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     number_of_reviewers = models.PositiveIntegerField(default=1)
     is_private = models.BooleanField(default=False)
+    upvotes = models.PositiveIntegerField(default=0)
+    upvoters = models.ManyToManyField(User, related_name='upvoted_projects', blank=True)
 
     @property
     def current_reviewers_count(self):
@@ -106,3 +108,20 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
+    
+class ProjectInvitation(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('ACCEPTED', 'Accepted'),
+        ('DECLINED', 'Declined'),
+    ]
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    invited_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invitations')
+    invited_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_invitations')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    created_at = models.DateTimeField(auto_now_add=True)
+    response_date = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ['project', 'invited_user']

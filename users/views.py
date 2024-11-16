@@ -122,7 +122,7 @@ def project_list(request):
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
     sort_by = request.GET.get('sort', '-created_at')
     if sort_by == 'due_date' :
-        project = projects.order_by(F('due_date').asc(nulls_last=True))
+        projects = projects.order_by(F('due_date').asc(nulls_last=True))
     elif sort_by == '-due_date':
         projects = projects.order_by('-due_date')
     elif sort_by == 'created_at' :
@@ -422,15 +422,36 @@ def delete_file(request, project_name, id, file_id):
 
     return redirect('project_main_view', project_name=project_name, id=id)
 
+# @login_required
+# def create_message(request, project_id, user_id):
+#     if request.method == 'POST':
+#         content = request.POST.get('content')
+#         if content:
+#             user = get_object_or_404(User, id=user_id)
+#             project = get_object_or_404(Project, id=project_id)
+#             Message.objects.create(content=content, project=project, user=user)
+#             return JsonResponse({'status': 'Message sent'})
+#     return JsonResponse({'error': 'Invalid request'}, status=400)
+
 @login_required
-def create_message(request, project_id, user_id):
+def create_message(request, project_id):
     if request.method == 'POST':
         content = request.POST.get('content')
         if content:
-            user = get_object_or_404(User, id=user_id)
             project = get_object_or_404(Project, id=project_id)
-            Message.objects.create(content=content, project=project, user=user)
-            return JsonResponse({'status': 'Message sent'})
+            message = Message.objects.create(content=content, project=project, user=request.user)
+            return JsonResponse({
+                'status': 'Message sent',
+                'message': {
+                    'id': message.id,
+                    'content': message.content,
+                    'created_at': message.created_at.isoformat(),
+                    'user': {
+                        'id': request.user.id,
+                        'username': request.user.username
+                    }
+                }
+            })
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @login_required
@@ -537,19 +558,15 @@ def view_file(request, project_name, id, file_id):
             },
             ExpiresIn=3600  # URL expires in 1 hour
         )
-        
-        print("hi")
 
         # Handle prompt form submission
         if request.method == 'POST' and 'add_prompt' in request.POST:
-            print("in add prompt POST request")
             prompt_form = PromptForm(request.POST)
             if prompt_form.is_valid():
                 new_prompt = prompt_form.save(commit=False)
                 new_prompt.upload = upload
                 new_prompt.created_by = request.user
                 new_prompt.save()
-                print("Prompt saved to database with ID:", new_prompt.id)
                 
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         # Re-fetch prompts to include the new one
@@ -567,8 +584,6 @@ def view_file(request, project_name, id, file_id):
                         return JsonResponse({'html': prompts_html})
                 
                 return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
-            else:
-                print("Form errors:", prompt_form.errors)
 
         # Handle response form submission
         elif request.method == 'POST' and 'add_response' in request.POST:
@@ -748,8 +763,149 @@ def show_all_users(request):
     users = User.objects.exclude(id=request.user.id)
     return render(request, 'search_users.html', {'users': users})
 
+from .models import ProjectInvitation
 @login_required
 def manage_invites(request):
     # add correct logic
-    users = User.objects.all()
-    return render(request, 'search_users.html', {'users': users})
+    # users = User.objects.all()
+    # return render(request, 'search_users.html', {'users': users})
+    if request.method == 'POST':
+        project_id = request.POST.get('project_id')
+        user_id = request.POST.get('user_id')
+        
+        project = get_object_or_404(Project, id=project_id, owner=request.user)
+        invited_user = get_object_or_404(User, id=user_id)
+
+        # Check if user is already a member
+        if project.members.filter(id=user_id).exists():
+            messages.error(request, f'{invited_user.username} is already a member of this project.')
+            return redirect('project_detail', project_id=project_id)
+
+        # Check if there's already a pending invitation
+        existing_invitation = ProjectInvitation.objects.filter(
+            project=project,
+            invited_user=invited_user,
+            status='PENDING'
+        ).first()
+
+        if existing_invitation:
+            messages.warning(request, f'An invitation has already been sent to {invited_user.username}.')
+        else:
+            ProjectInvitation.objects.create(
+                project=project,
+                invited_by=request.user,
+                invited_user=invited_user
+            )
+            messages.success(request, f'Invitation sent to {invited_user.username} for project {project.name}.')
+
+        return redirect('search_users')
+    
+
+@login_required
+def select_project_for_invite(request, user_id):
+    invited_user = get_object_or_404(User, id=user_id)
+    user_projects = Project.objects.filter(owner=request.user)
+    
+    return render(request, 'select_project.html', {
+        'invited_user': invited_user,
+        'user_projects': user_projects
+    })
+
+
+from datetime import datetime
+@login_required
+def handle_invitation(request, invitation_id):
+    invitation = get_object_or_404(
+        ProjectInvitation,
+        id=invitation_id,
+        invited_user=request.user,
+        status='PENDING'
+    )
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'accept':
+            invitation.project.members.add(request.user)
+            # ProjectMembership.objects.create(
+            #     user=request.user,
+            #     project=invitation.project,
+            #     role='MEMBER'
+            # )
+            invitation.status = 'ACCEPTED'
+            messages.success(request, f'You have joined {invitation.project.name}.')
+        elif action == 'decline':
+            invitation.status = 'DECLINED'
+            messages.info(request, f'You have declined the invitation to {invitation.project.name}.')
+        
+        invitation.response_date = datetime.now()
+        invitation.save()
+
+    return redirect('view_invites')
+
+@login_required
+def invitation_list(request):
+    pending_invitations = ProjectInvitation.objects.filter(
+        invited_user=request.user,
+        status='PENDING'
+    ).select_related('project', 'invited_by')
+    
+    return render(request, 'view_invites.html', {
+        'pending_invitations': pending_invitations
+    })
+
+
+@login_required
+def upvote_project(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    
+    # Check if the user has already upvoted
+    if request.user in project.upvoters.all():
+        # If already upvoted, subtract the upvote and remove the user from upvoters
+        project.upvotes -= 1
+        project.upvoters.remove(request.user)
+        project.save()
+        return JsonResponse({'status': 'removed', 'upvotes': project.upvotes})
+    else:
+        # If not upvoted, add the upvote and add the user to upvoters
+        project.upvotes += 1
+        project.upvoters.add(request.user)
+        project.save()
+        return JsonResponse({'status': 'added', 'upvotes': project.upvotes})
+
+def popular_projects(request):
+    projects = Project.objects.all().order_by('-upvotes')  
+
+    s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+    bucket_name = AWS_STORAGE_BUCKET_NAME
+
+    for project in projects:
+        project.latest_upload = Upload.objects.filter(project=project).order_by('-uploaded_at').first()
+
+        if project.latest_upload:
+            upload = project.latest_upload
+            file_key = f"{project.name}/{upload.file}"  
+
+            mime_type, _ = mimetypes.guess_type(file_key)
+
+            if mime_type not in ['image/jpeg', 'text/plain', 'application/pdf', 'video/mp4']:
+                disposition_type = 'attachment'
+            else:
+                disposition_type = 'inline'
+
+            file_url = s3.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': bucket_name,
+                    'Key': file_key,
+                    'ResponseContentType': mime_type,
+                    'ResponseContentDisposition': disposition_type
+                },
+                ExpiresIn=3600
+            )
+
+            upload.signed_url = file_url
+            file_type, _ = mimetypes.guess_type(project.latest_upload.file.name)
+            project.latest_upload.file_type = file_type
+        
+    return render(request, 'popular_projects.html', {'projects': projects})

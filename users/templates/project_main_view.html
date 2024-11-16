@@ -109,9 +109,9 @@
                     </div>
                     <div class="card-body">
                         <div id="chat-log" style="height: 300px; overflow-y: scroll; border: 1px solid #ced4da; padding: 15px; background-color: #f8f9fa; border-radius: .25rem; margin-bottom: 20px;"></div>
-                        <form id="message-form" method="post" action="{% url 'create_message' project.id user.id %}">
+                        <form id="message-form" method="post" action="{% url 'create_message' project.id %}">
                             {% csrf_token %}
-                            <textarea id="chat-message-input" name="content" placeholder="Your next message..." rows="3" class="form-control mb-3"></textarea>
+                            <textarea id="chat-message-input" name="content" placeholder="Your next message..." rows="3" class="form-control mb-3" required></textarea>
                             <button type="submit" class="btn btn-primary w-100">Send</button>
                         </form>
                         <button id="refresh-button" class="btn btn-secondary w-100 mt-3">Refresh Messages</button>
@@ -162,7 +162,7 @@
     {% endif %}
 
 </div>
-{% endblock %}
+
 
 <!-- jQuery and AJAX for Chat -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -196,3 +196,4 @@
         });
     });
 </script>
+{% endblock %}

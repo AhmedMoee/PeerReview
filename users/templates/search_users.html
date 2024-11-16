@@ -12,7 +12,7 @@
                             <span>{{ user.get_full_name }}</span>
                             <div class="ms-auto">
                                 <a href="{% url 'view_profile' user.id %}" class="btn btn-outline-info me-2">View Profile</a>
-                                <a href="{% url 'manage_invites' %}" class="btn btn-outline-success">Invite</a>
+                                <a href="{% url 'select_project_for_invite' user.id %}" class="btn btn-outline-success">Invite</a>
                             </div>
                         </li>
                     {% endfor %}

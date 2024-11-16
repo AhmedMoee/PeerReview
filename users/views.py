@@ -732,9 +732,6 @@ def show_all_users(request):
 from .models import ProjectInvitation
 @login_required
 def manage_invites(request):
-    # add correct logic
-    # users = User.objects.all()
-    # return render(request, 'search_users.html', {'users': users})
     if request.method == 'POST':
         project_id = request.POST.get('project_id')
         user_id = request.POST.get('user_id')
@@ -765,7 +762,6 @@ def manage_invites(request):
             messages.success(request, f'Invitation sent to {invited_user.username} for project {project.name}.')
 
         return redirect('search_users')
-    
 
 @login_required
 def select_project_for_invite(request, user_id):

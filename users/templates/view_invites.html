@@ -6,14 +6,16 @@
 {% if pending_invitations %}
     <ul class="list-group">
         {% for invite in pending_invitations %}
-            <li class="list-group-item">
-                <strong>{{ invite.invited_by.username }}</strong> has invited you to join 
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <p class="mb-0">
+                    <strong>{{ invite.invited_by.username }}</strong> has invited you to join
                 <strong>{{ invite.project.name }}</strong>.
+                </p>
 
                 <form method="post" action="{% url 'handle_invitation' invite.id %}" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" name="action" value="accept" class="btn btn-success">Accept</button>
-                    <button type="submit" name="action" value="decline" class="btn btn-danger">Decline</button>
+                        <button type="submit" name="action" value="accept" class="btn btn-success">Accept</button>
+                        <button type="submit" name="action" value="decline" class="btn btn-danger">Decline</button>
                 </form>
             </li>
         {% endfor %}

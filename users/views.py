@@ -34,23 +34,17 @@ def dashboard(request):
         # look for first name, if it doesn't exist, use their username
         user_name = request.user.first_name or request.user.username
 
-        # count pending invitations for the user
-        pending_invitations_count = ProjectInvitation.objects.filter(
-            invited_user=request.user,
-            status='PENDING'
-        ).count()
-
         if request.user.groups.filter(name='PMA Administrators').exists():
             # Render the PMA Administrator dashboard
             return pma_dashboard(request, user_name)
         else:
             # Render the Common User dashboard
-            return common_dashboard(request, user_name, pending_invitations_count)
+            return common_dashboard(request, user_name)
     # if not authenticated, anon user, redirect to home page (with Google login option)
     return anonymous_dashboard(request)
     
 @login_required
-def common_dashboard(request, user_name, pending_invitations_count):
+def common_dashboard(request, user_name):
     owned_projects = Project.objects.filter(owner=request.user)
     member_projects = Project.objects.filter(members=request.user).exclude(owner=request.user)
 
@@ -58,7 +52,6 @@ def common_dashboard(request, user_name, pending_invitations_count):
         'user_name': user_name,
         'owned_projects': owned_projects,
         'member_projects': member_projects,
-        'pending_invitations_count': pending_invitations_count,
     })
     
 #display project list helper method    

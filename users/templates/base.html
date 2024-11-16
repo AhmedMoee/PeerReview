@@ -1,5 +1,6 @@
 {% load static %}
 {% load socialaccount %}
+{% load custom_filters %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -14,7 +15,7 @@
 <body>
 
 <!-- Navigation Bar -->
-<nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+<nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 sticky-top">
     <div class="container-fluid">
         <a class="navbar-brand" href="{% url 'dashboard' %}">
             <img src="{% static 'images/pencil.png' %}" alt="Pencil Logo" height="30" class="d-inline-block align-text-top">
@@ -40,8 +41,8 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'view_invites' %}">
                             Invites
-                            {% if pending_invitations_count > 0 %}
-                                <span class="badge bg-danger">{{ pending_invitations_count }}</span>
+                            {% if request.user|pending_invites_count > 0 %}
+                                <span class="badge bg-danger">{{ request.user|pending_invites_count }}</span>
                             {% endif %}
                         </a>
                     </li>

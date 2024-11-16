@@ -489,6 +489,8 @@ def load_messages(request, project_id):
 import mimetypes  # https://docs.python.org/3/library/mimetypes.html
 from .forms import PromptForm, PromptResponseForm
 from .models import Prompt
+from django.template.loader import render_to_string
+
 
 @login_required
 def view_file(request, project_name, id, file_id):
@@ -535,16 +537,38 @@ def view_file(request, project_name, id, file_id):
             },
             ExpiresIn=3600  # URL expires in 1 hour
         )
+        
+        print("hi")
 
         # Handle prompt form submission
         if request.method == 'POST' and 'add_prompt' in request.POST:
+            print("in add prompt POST request")
             prompt_form = PromptForm(request.POST)
             if prompt_form.is_valid():
                 new_prompt = prompt_form.save(commit=False)
                 new_prompt.upload = upload
                 new_prompt.created_by = request.user
                 new_prompt.save()
+                print("Prompt saved to database with ID:", new_prompt.id)
+                
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        # Re-fetch prompts to include the new one
+                        prompts = upload.prompts.all()
+
+                        # Render the partial template
+                        prompts_html = render_to_string('partials/prompts_partial.html', {
+                            'prompts': prompts,
+                            'prompt_form': PromptForm(),
+                            'response_form': PromptResponseForm(),
+                            'project': project,
+                            'file_id': file_id,
+                        }, request=request)
+
+                        return JsonResponse({'html': prompts_html})
+                
                 return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
+            else:
+                print("Form errors:", prompt_form.errors)
 
         # Handle response form submission
         elif request.method == 'POST' and 'add_response' in request.POST:
@@ -556,6 +580,22 @@ def view_file(request, project_name, id, file_id):
                 new_response.prompt = prompt
                 new_response.created_by = request.user
                 new_response.save()
+                
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        # Re-fetch prompts to include the new one
+                        prompts = upload.prompts.all()
+
+                        # Render the partial template
+                        prompts_html = render_to_string('partials/prompts_partial.html', {
+                            'prompts': prompts,
+                            'prompt_form': PromptForm(),
+                            'response_form': PromptResponseForm(),
+                            'project': project,
+                            'file_id': file_id,
+                        }, request=request)
+
+                        return JsonResponse({'html': prompts_html})
+                
                 return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
 
         # handling metadata update submission

@@ -83,59 +83,88 @@
 
 <hr class="my-4">
 
-<div class="prompt-section">
-    <h3>Discussion</h3>
-
-    <!-- Add Prompt Form -->
-    <div class="mb-4">
-        <form method="post" class="d-flex flex-column align-items-start">
-            {% csrf_token %}
-            {{ prompt_form.content}}
-            <button type="submit" name="add_prompt" class="btn btn-primary mt-2">Add Prompt</button>
-        </form>
-    </div>
-
-    <!-- Display Prompts and Responses -->
-    <div class="prompts-container">
-        {% for prompt in prompts %}
-            <div class="prompt-card card mb-3">
-                <div class="card-header">
-                    <strong>{{ prompt.content }}:</strong>
-                    <small class="text-muted float-end">{{ prompt.created_at|date:"F j, Y, g:i a" }}</small>
-                </div>
-                <div class="card-body">
-                    <!-- Responses to this Prompt -->
-                    <h6>Responses:</h6>
-                    <ul class="list-group list-group-flush mb-3">
-                        {% for response in prompt.responses.all %}
-                            <li class="list-group-item">
-                                <strong>{{ response.created_by.username }}:</strong> {{ response.content }}
-                                <small class="text-muted float-end">{{ response.created_at|date:"F j, Y, g:i a" }}</small>
-                            </li>
-                        {% empty %}
-                            <li class="list-group-item text-muted">No responses yet.</li>
-                        {% endfor %}
-                    </ul>
-
-                    <!-- Add Response Form -->
-                    <form method="post" class="mt-2 d-flex align-items-bottom" style="max-width: 500px;">
-                        {% csrf_token %}
-                        <div class="me-2 flex-grow-1">
-                            {{ response_form.content }}
-                        </div>
-                        <input type="hidden" name="prompt_id" value="{{ prompt.id }}">
-                        <button type="submit" name="add_response" class="btn btn-secondary btn-sm" style="width: auto; height: 30px">Reply</button>
-                    </form>
-                </div>
-            </div>
-        {% empty %}
-            <p class="text-muted">No prompts available for this file.</p>
-        {% endfor %}
-    </div>
-</div>
+{% include 'partials/prompts_partial.html' %}
 
 <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-secondary mt-3">Back to Uploads</a>
 
 {% endblock %}
 
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        console.log("JavaScript is working on this page");
+    
+        // Handle Add Prompt Form Submission
+        $(document).on('submit', '#add-prompt-form', function(e) {
+            e.preventDefault(); // Prevent the default form submission behavior
+            console.log('Add Prompt form intercepted by AJAX'); // Debugging log
+    
+            const form = $(this);
+            $.ajax({
+                type: form.attr('method'),
+                url: form.attr('action'),
+                data: form.serialize(),
+                success: function(response) {
+                    // Update the entire prompt section with the new HTML
+                    $('#prompt-section').html(response.html);
+                    form[0].reset(); // Reset the form fields
+                },
+                error: function(xhr) {
+                    console.error('Error submitting prompt:', xhr);
+                    alert('There was an error submitting the prompt. Please try again.');
+                }
+            });
+        });
+    
+        // Handle Add Response Form Submission
+        $(document).on('submit', '.add-response-form', function(e) {
+            e.preventDefault(); // Prevent the default form submission behavior
+            console.log('Add Response form intercepted by AJAX'); // Debugging log
+    
+            const form = $(this);
+            $.ajax({
+                type: form.attr('method'),
+                url: form.attr('action'),
+                data: form.serialize(),
+                success: function(response) {
+                    // Update the entire prompt section with the new HTML
+                    $('#prompt-section').html(response.html);
+                    form[0].reset(); // Reset the form fields
+                },
+                error: function(xhr) {
+                    console.error('Error submitting response:', xhr);
+                    alert('There was an error submitting the response. Please try again.');
+                }
+            });
+        });
+    
+        // Include CSRF token in AJAX requests
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+    
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!(/^GET|HEAD|OPTIONS|TRACE$/i.test(settings.type)) && !this.crossDomain) {
+                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                }
+            }
+        });
+    });    
+</script>
 <script src="{% static 'actions.js' %}"></script>
+{% endblock %}

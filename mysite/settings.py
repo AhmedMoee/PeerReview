@@ -50,7 +50,7 @@ INSTALLED_APPS = [
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
-    
+
     "google": {
          'APP': {
             'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
@@ -64,6 +64,17 @@ SOCIALACCOUNT_PROVIDERS = {
         'AUTH_PARAMS': {'access_type': 'online'}
     }
 }
+
+# SOCIALACCOUNT_PROVIDERS = {
+#
+#     "google": {
+#         "SCOPE": [
+#             'profile',
+#             'email'
+#         ],
+#         'AUTH_PARAMS': {'access_type': 'online'}
+#     }
+# }
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

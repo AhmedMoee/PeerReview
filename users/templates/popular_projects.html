@@ -61,7 +61,7 @@
 
                         <!-- Project Details Section (flexed to the right) -->
                         <div class="ms-3">
-                            <p><strong>Owner:</strong> {{ project.owner.username }}</p>
+                            <strong>Owner:</strong> <a href="{% url 'view_profile' project.owner.id %}">{{ project.owner.username }}</a>
                             <p><strong>Reviewers:</strong> {{ project.current_reviewers_count }} / {{ project.number_of_reviewers }}</p>
                         </div>
                     </div>
@@ -75,10 +75,16 @@
                     <div>
                         <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-outline-info btn-sm">View</a>
                         {% if user.is_authenticated and not is_pma_admin %}
-                            {% if project_status|dict_key:project.id == 'pending' %}
+                            {% if project.owner.id == request.user.id %}
+                                <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-primary btn-sm" >Manage Requests</a>
+                            {% elif project.pending_request %}
                                 <span class="badge bg-warning">Request Pending</span>
-                            {% elif project_status|dict_key:project.id == 'member' %}
+                            {% elif request.user in project.members.all %}
                                 <span class="badge bg-success">Member</span>
+<!--                            {% elif project_status|dict_key:project.id == 'pending' }-->
+<!--                                <span class="badge bg-warning">Request Pending</span>-->
+<!--                            {% elif project_status|dict_key:project.id == 'member' }-->
+<!--                                <span class="badge bg-success">Member</span>-->
                             {% else %}
                                 <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
                                     {% csrf_token %}

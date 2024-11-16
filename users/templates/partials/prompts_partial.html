@@ -1,0 +1,53 @@
+<div id="prompt-section" class="prompt-section">
+    <h3>Discussion</h3>
+
+    <!-- Add Prompt Form -->
+    <div id="add-prompt-form-section" class="mb-4">
+        <form id="add-prompt-form" method="post" action="{% url 'view_file' project.name project.id file_id %}">
+            {% csrf_token %}
+            <!-- Add this hidden input field -->
+            <input type="hidden" name="add_prompt" value="1">
+            {{ prompt_form.content }}
+            <button type="submit" name="add_prompt" class="btn btn-primary mt-2">Add Prompt</button>
+        </form>
+    </div>
+
+    <!-- Display Prompts and Responses -->
+    <div id="prompts-container" class="prompts-container">
+        {% for prompt in prompts %}
+            <div id="prompt-{{ prompt.id }}" class="prompt-card card mb-3">
+                <div class="card-header">
+                    <strong>{{ prompt.content }}:</strong>
+                    <small class="text-muted float-end">{{ prompt.created_at|date:"F j, Y, g:i a" }}</small>
+                </div>
+                <div class="card-body">
+                    <h6>Responses:</h6>
+                    <ul class="list-group list-group-flush mb-3">
+                        {% for response in prompt.responses.all %}
+                            <li class="list-group-item">
+                                <strong>{{ response.created_by.username }}:</strong> {{ response.content }}
+                                <small class="text-muted float-end">{{ response.created_at|date:"F j, Y, g:i a" }}</small>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">No responses yet.</li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- Add Response Form -->
+                    <form id="add-response-form-{{ prompt.id }}" class="add-response-form mt-2 d-flex align-items-bottom" method="post" data-prompt-id="{{ prompt.id }}" action="{% url 'view_file' project.name project.id file_id %}" style="max-width: 500px;">
+                        {% csrf_token %}
+                        <!-- Add this hidden input field -->
+                        <input type="hidden" name="add_response" value="1">
+                        <div class="me-2 flex-grow-1">
+                            {{ response_form.content }}
+                            <input type="hidden" name="prompt_id" value="{{ prompt.id }}">
+                        </div>
+                        <button type="submit" name="add_response" class="btn btn-secondary btn-sm" style="width: auto; height: 30px">Reply</button>
+                    </form>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-muted">No prompts available for this file.</p>
+        {% endfor %}
+    </div>
+</div>

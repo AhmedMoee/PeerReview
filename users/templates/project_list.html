@@ -57,14 +57,16 @@
                                 </h5>
                                 <div class="ms-2">
                                     {% if project_status|dict_key:project.id == 'member' %}
-                                    {% if project.owner == request.user %}
-                                        <span class="badge bg-dark">Owner</span>
-                                    {% else %}
-                                        <span class="badge bg-success">Member</span>
+                                        {% if project.owner == request.user %}
+                                            <span class="badge bg-dark">Owner</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Member</span>
+                                        {% endif %}
+                                    {% elif project_status|dict_key:project.id == 'pending' %}
+                                        <span class="badge bg-warning">Request Pending</span>
+                                    {% elif project.current_reviewers_count == project.number_of_reviewers %}
+                                        <span class="badge bg-danger">Maximum Number of Reviewers Reached</span>
                                     {% endif %}
-                                {% elif project_status|dict_key:project.id == 'pending' %}
-                                    <span class="badge bg-warning">Request Pending</span>
-                                {% endif %}
                                 </div>
                             </div>
 
@@ -94,13 +96,17 @@
                                 {% endif %}
                             {% elif project_status|dict_key:project.id == 'pending' %}
                             {% else %}
-                                {% if project.current_reviewers_count < project.number_of_reviewers %}
+                                {% if user.is_authenticated and is_pma_admin %}
+                                    <!-- do not show request to join button -->
+                                {% else %}
+                                    {% if project.current_reviewers_count < project.number_of_reviewers %}
                                     <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-primary">Request to Join</button>
                                     </form>
-                                {% else %}
-                                    <p class="text-muted">Maximum number of reviewers reached.</p>
+                                    {% else %}
+                                        <!-- display that max reviewers are reached near project name -->
+                                    {% endif %}
                                 {% endif %}
                             {% endif %}
 

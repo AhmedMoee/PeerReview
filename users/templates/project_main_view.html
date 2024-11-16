@@ -75,7 +75,12 @@
                         <ul class="list-group">
                             {% for file in files %}
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <a href="{% url 'view_file' project.name project.id file.id %}">{{ file.name }}</a>
+                                    {% if user in project.members.all or is_owner_or_admin %}
+                                        <a href="{% url 'view_file' project.name project.id file.id %}">{{ file.name }}</a>
+                                    <!-- change visibility based on privacy -->
+                                    {% else %}
+                                        <p class="mb-0">{{ file.name }}</p>
+                                    {% endif %}
                                     {% if is_owner_or_admin %}
                                         <form action="{% url 'delete_file' project.name project.id file.id %}" method="post" class="d-inline-block">
                                             {% csrf_token %}
@@ -98,11 +103,15 @@
 
                 <!-- Request to Join Button for Common Users Only -->
                 {% if not user in project.members.all and not is_owner_or_admin %}
-                    <p>You are not a member of this project. Please request to join.</p>
-                    <form action="{% url 'request_to_join' project.id %}" method="post">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary">Request to Join</button>
-                    </form>
+                    {% if project.current_reviewers_count < project.number_of_reviewers %}
+                        <p>You are not a member of this project. Please request to join.</p>
+                        <form action="{% url 'request_to_join' project.id %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">Request to Join</button>
+                        </form>
+                    {% elif project.current_reviewers_count == project.number_of_reviewers %}
+                        <p>The maximum number of reviewers for this project has been reached. Please request to join when a spot becomes available.</p>
+                    {% endif %}
                 {% endif %}
 
             </div>

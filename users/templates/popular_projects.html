@@ -72,9 +72,6 @@
                 <!-- Card Footer -->
                 <div class="card-footer d-flex justify-content-between align-items-center">
                     <div>
-                        <span id="upvote-count-{{ project.id }}" class="badge bg-success">{{ project.upvotes }} </span>
-                    </div>
-                    <div>
                         <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-outline-info btn-sm">View</a>
                         {% if user.is_authenticated and not is_pma_admin %}
                             {% if project.owner.id == request.user.id %}

@@ -16,8 +16,10 @@
                         class="btn btn-light btn-sm" 
                         onclick="upvoteProject('{{ project.id }}')" 
                         id="upvote-button-{{ project.id }}">
-                        <i class="fas fa-arrow-up" id="upvote-icon-{{ project.id }}"></i>
+                        <i class="fas fa-arrow-up {% if project.user_has_upvoted %}filled{% endif %}" 
+                        id="upvote-icon-{{ project.id }}"></i>
                     </button>
+                    <span id="upvote-count-{{ project.id }}">{{ project.upvotes }}</span>
                 </div>
 
                 <!-- Card Body -->

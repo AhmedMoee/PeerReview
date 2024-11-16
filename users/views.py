@@ -111,21 +111,27 @@ def create_project(request):
 
     return render(request, 'create_project.html', {'form': form})
 
+from django.db.models import Exists, OuterRef
 
 def project_list(request):
-    projects = Project.objects.all()
-    project_status = {}
+    projects = Project.objects.annotate(
+        user_has_upvoted=Exists(
+            Project.upvoters.through.objects.filter(
+                user_id=request.user.id, project_id=OuterRef('id')
+            )
+        )
+    )
 
-    # Check if the user is a PMA Administrator
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
     sort_by = request.GET.get('sort', '-created_at')
-    if sort_by == 'due_date' :
+
+    if sort_by == 'due_date':
         projects = projects.order_by(F('due_date').asc(nulls_last=True))
     elif sort_by == '-due_date':
         projects = projects.order_by('-due_date')
-    elif sort_by == 'created_at' :
+    elif sort_by == 'created_at':
         projects = projects.order_by('created_at')
-    elif sort_by == '-created_at' :
+    elif sort_by == '-created_at':
         projects = projects.order_by('-created_at')
 
     search_query = request.GET.get('q', '')
@@ -135,21 +141,18 @@ def project_list(request):
             Q(category__icontains=search_query)
         )
 
-    visible_projects = []
-    project_status = {}
+    visible_projects = [
+        project for project in projects
+        if not project.is_private or project.owner == request.user
+        or request.user in project.members.all() or is_pma_admin
+    ]
 
-    for project in projects:
-        # Check visibility conditions
-        if not project.is_private or project.owner == request.user or request.user in project.members.all() or is_pma_admin:
-            visible_projects.append(project)
-
-            if request.user.is_authenticated and not is_pma_admin:
-                if request.user in project.members.all():
-                    project_status[project.id] = 'member'
-                elif JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists():
-                    project_status[project.id] = 'pending'
-                else:
-                    project_status[project.id] = 'not_member'
+    project_status = {
+        project.id: 'member' if request.user in project.members.all() else
+        'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
+        'not_member'
+        for project in visible_projects if request.user.is_authenticated and not is_pma_admin
+    }
 
     project_permissions = {
         project.id: project.owner == request.user or is_pma_admin
@@ -665,7 +668,7 @@ def view_profile(request, user_id):
     projects = Project.objects.filter(Q(owner=user) | Q(members=user)).distinct()
 
     return render(request, 'view_profile.html', {'user': user, 'profile': profile, 'projects': projects,
-                                                 'referer': referer})
+                                                'referer': referer})
 
 @login_required
 def edit_profile(request):
@@ -867,7 +870,13 @@ def upvote_project(request, project_id):
         return JsonResponse({'status': 'added', 'upvotes': project.upvotes})
 
 def popular_projects(request):
-    projects = Project.objects.all().order_by('-upvotes')  
+    projects = Project.objects.annotate(
+        user_has_upvoted=Exists(
+            Project.upvoters.through.objects.filter(
+                user_id=request.user.id, project_id=OuterRef('id')
+            )
+        )
+    ).order_by('-upvotes')  
 
     s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
     bucket_name = AWS_STORAGE_BUCKET_NAME

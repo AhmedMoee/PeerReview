@@ -32,8 +32,12 @@
                         <!-- Upvote Button -->
                         <div class="me-3" >
                             {% if user.is_authenticated and not is_pma_admin %}
-                            <button class="btn" onclick="upvoteProject('{{ project.id }}')" id="upvote-button-{{ project.id }}">
-                                <i class="fas fa-arrow-up" id="upvote-icon-{{ project.id }}"></i>
+                            <button 
+                                class="btn" 
+                                onclick="upvoteProject('{{ project.id }}')" 
+                                id="upvote-button-{{ project.id }}">
+                                <i class="fas fa-arrow-up {% if project.user_has_upvoted %}filled{% endif %}" 
+                                id="upvote-icon-{{ project.id }}"></i>
                             </button>
                             <span id="upvote-count-{{ project.id }}">{{ project.upvotes }}</span>
                             {% endif %}

@@ -118,7 +118,7 @@
 
             <div class="col-lg-4">
                 <!-- Chat Section -->
-                {% if user in project.members.all and is_owner_or_admin %}
+                {% if user in project.members.all or is_owner_or_admin %}
                     <div class="card mb-4">
                         <div class="card-header bg-primary text-white">
                             <h2 class="h4 mb-0">Project Chat</h2>

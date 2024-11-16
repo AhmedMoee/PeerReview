@@ -31,4 +31,5 @@ urlpatterns = [
     path('invitation/<int:invitation_id>/handle/', views.handle_invitation, name='handle_invitation'),
     path('project/<int:project_id>/upvote/', views.upvote_project, name='upvote_project'),
     path('popular_projects/', views.popular_projects, name='popular_projects'),
+    path('project/<str:project_name>/<int:id>/upload-files/', views.upload_project_files, name='upload_project_files'),
 ]

@@ -146,17 +146,39 @@
                 </div>
             </div>
         </div>
-    {% else %}
+        {% else %}
         <!-- Non-authenticated User Section -->
         <div class="row">
+            <!-- Main content area (files list) -->
             <div class="col-lg-8">
-                <h2>{{ project.name }}</h2>
-                <p><strong>Owner:</strong> {{ project.owner.username }}</p>
-                <p>{{ project.description }}</p>
-                <a href="{% provider_login_url 'google' %}?next=/" class="btn btn-primary mb-4">Login with Google</a> 
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h4 mb-0">All Uploaded Files for {{ project.name }}</h2>
+                    </div>
+                    <div class="card-body">
+
+                        <ul class="list-group">
+                            <p class="mb-0">Please log in to access the uploaded files for {{ project.name }}.</p>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Members Section -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h4 mb-0">Project Owner</h2>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>{{ project.owner.get_full_name|default:project.owner.username }}</strong></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
-    {% endif %}
+        {% endif %}
 
     {% if is_pma_admin %}
         <!-- PMA Admins go back to their dashboard -->

@@ -45,8 +45,15 @@
                             <div class="d-flex align-items-center">
                                 <h5 class="mb-0">
                                     {{ project.name }}
-                                    <small class="text-muted">({{ project.category }})</small>
-                                    <small class="text-muted">({{ project.due_date }})</small>
+                                    {% if project.category %}
+                                        <small class="text-muted">({{ project.category }})</small>
+                                    {% else %}
+                                    {% endif %}
+                                    {% if project.due_date == null %}
+                                        <small class="text-muted">(No Due Date)</small>
+                                    {% else %}
+                                        <small class="text-muted">({{ project.due_date }})</small>
+                                    {% endif %}
                                 </h5>
                                 <div class="ms-2">
                                     {% if project_status|dict_key:project.id == 'member' %}

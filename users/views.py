@@ -36,16 +36,15 @@ def dashboard(request):
 
         if request.user.groups.filter(name='PMA Administrators').exists():
             # Render the PMA Administrator dashboard
-            return pma_dashboard(request)
+            return pma_dashboard(request, user_name)
         else:
             # Render the Common User dashboard
-            return common_dashboard(request)
+            return common_dashboard(request, user_name)
     # if not authenticated, anon user, redirect to home page (with Google login option)
     return anonymous_dashboard(request)
     
 @login_required
-def common_dashboard(request):
-    user_name = request.user.first_name or request.user.username
+def common_dashboard(request, user_name):
     owned_projects = Project.objects.filter(owner=request.user)
     member_projects = Project.objects.filter(members=request.user).exclude(owner=request.user)
 
@@ -84,8 +83,7 @@ def get_projects_context(request):
     }
 
 @login_required
-def pma_dashboard(request):
-    user_name = request.user.first_name or request.user.username
+def pma_dashboard(request, user_name):
     context = get_projects_context(request)
     context['user_name'] = user_name
     return render(request, 'pma_admin_dashboard.html', context)
@@ -766,9 +764,6 @@ def show_all_users(request):
 from .models import ProjectInvitation
 @login_required
 def manage_invites(request):
-    # add correct logic
-    # users = User.objects.all()
-    # return render(request, 'search_users.html', {'users': users})
     if request.method == 'POST':
         project_id = request.POST.get('project_id')
         user_id = request.POST.get('user_id')
@@ -799,7 +794,6 @@ def manage_invites(request):
             messages.success(request, f'Invitation sent to {invited_user.username} for project {project.name}.')
 
         return redirect('search_users')
-    
 
 @login_required
 def select_project_for_invite(request, user_id):
@@ -808,7 +802,7 @@ def select_project_for_invite(request, user_id):
     
     return render(request, 'select_project.html', {
         'invited_user': invited_user,
-        'user_projects': user_projects
+        'user_projects': user_projects,
     })
 
 
@@ -854,7 +848,6 @@ def invitation_list(request):
         'pending_invitations': pending_invitations
     })
 
-
 @login_required
 def upvote_project(request, project_id):
     project = get_object_or_404(Project, id=project_id)
@@ -880,6 +873,7 @@ def popular_projects(request):
     bucket_name = AWS_STORAGE_BUCKET_NAME
 
     for project in projects:
+        project.pending_request = JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists()
         project.latest_upload = Upload.objects.filter(project=project).order_by('-uploaded_at').first()
 
         if project.latest_upload:

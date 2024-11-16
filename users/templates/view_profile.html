@@ -5,9 +5,17 @@
     <div class="row">
         <!-- Profile Information -->
         <div class="col-md-8 offset-md-2">
-            <h1>{{ user.username }}'s Profile</h1>
+            <div class="text-center">
+                <h1>{{ user.username }}'s Profile</h1>
+            </div>
             <div class="card mb-4">
                 <div class="card-body">
+                    <!-- profile picture placeholder (circle) -->
+                    <div class="text-center mb-4">
+                        <div class="rounded-circle" style="width: 120px; height: 120px; background-color: #dcdcdc; margin: 0 auto;">
+                            <!-- profile picture here if we want to add that feature!-->
+                        </div>
+                    </div>
                     <h3>About Me</h3>
                     {% if profile.bio %}
                         <p>{{ profile.bio }}</p>
@@ -36,13 +44,19 @@
                     <h3>Social Links</h3>
                     <ul class="list-inline">
                         {% if profile.linkedin %}
-                            <li class="list-inline-item"><a href="{{ profile.linkedin }}" target="_blank" class="btn btn-outline-primary">LinkedIn</a></li>
+                            <li class="list-inline-item">
+                                <a href="{{ profile.linkedin }}" target="_blank" class="btn btn-outline-primary">LinkedIn</a>
+                            </li>
                         {% endif %}
                         {% if profile.github %}
-                            <li class="list-inline-item"><a href="{{ profile.github }}" target="_blank" class="btn btn-outline-dark">GitHub</a></li>
+                            <li class="list-inline-item">
+                                <a href="{{ profile.github }}" target="_blank" class="btn btn-outline-dark">GitHub</a>
+                            </li>
                         {% endif %}
                         {% if profile.twitter %}
-                            <li class="list-inline-item"><a href="{{ profile.twitter }}" target="_blank" class="btn btn-outline-info">Twitter</a></li>
+                            <li class="list-inline-item">
+                                <a href="{{ profile.twitter }}" target="_blank" class="btn btn-outline-info">Twitter</a>
+                            </li>
                         {% endif %}
                     </ul>
 
@@ -50,7 +64,6 @@
                     {% if user == request.user %}
                         <a href="{% url 'edit_profile' %}" class="btn btn-primary mt-4">Edit Profile</a>
                     {% endif %}
-
                 </div>
             </div>
 
@@ -61,7 +74,6 @@
             {% else %}
                 <a href="{{ referer }}" class="btn btn-secondary mt-3">Back</a>
             {% endif %}
-
         </div>
     </div>
 </div>

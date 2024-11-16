@@ -1,29 +1,42 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
-
-    <div class="card mb-4">
-        <div class="card-body">
-            <h4 class="card-title">All Users</h4>
-            {% if users %}
-                <ul class="list-group">
-                    {% for user in users %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>{{ user.get_full_name }}</span>
-                            <div class="ms-auto">
-                                <a href="{% url 'view_profile' user.id %}" class="btn btn-outline-info me-2">View Profile</a>
-                                <a href="{% url 'select_project_for_invite' user.id %}" class="btn btn-outline-success">Invite</a>
+<div class="container mt-5">
+    <h1 class="mb-4 text-center">All Users</h1>
+    <div class="row">
+        {% for user in users %}
+        <!-- add all col to make a responsive layout depending on screen size-->
+        <div class="col-12 col-md-6 col-lg-4 mx-auto mb-3">
+            <!-- make the entire card clickable by wrapping it in an <a> tag -->
+            <!-- no underlines or blue coloring for the text -->
+            <a href="{% url 'view_profile' user.id %}" class="text-decoration-none text-dark">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="text-center">
+                            <!-- profile picture placeholder (circle) -->
+                            <div class="rounded-circle" style="width: 100px; height: 100px; background-color: #dcdcdc; margin: 0 auto;">
+                                <!-- profile picture here if we want to add that feature!-->
                             </div>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="mt-2"><em>No users found.</em></p>
-            {% endif %}
+                            <h5 class="card-title mt-3">{{ user.get_full_name|default:user.username}}</h5>
+
+                            {% if user.profile.bio %}
+                                <p class="card-text">{{ user.profile.bio|truncatechars:100 }}</p>
+                            {% else %}
+                                <p class="text-muted"><em>No description available.</em></p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card-footer text-center">
+                        <a href="{% url 'select_project_for_invite' user.id %}" class="btn btn-outline-success w-100">Invite</a>
+                    </div>
+                </div>
+            </a>
         </div>
+        {% endfor %}
     </div>
-
-    <!-- back to dashboard -->
-    <a href="{% url 'dashboard' %}" class="btn btn-secondary me-2" style="background-color: grey;">Home</a>
-
+</div>
 {% endblock %}
+
+<script src="{% static 'actions.js' %}"></script>

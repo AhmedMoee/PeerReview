@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load static %}
 
 {% block content %}
 <h2>Your Pending Invitations</h2>
@@ -25,5 +24,3 @@
 
 <a href="{% url 'dashboard' %}" class="btn btn-primary mt-3">Back to Dashboard</a>
 {% endblock %}
-
-<script src="{% static 'actions.js' %}"></script>

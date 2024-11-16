@@ -26,51 +26,66 @@
         <ul class="list-group">
             {% for project in projects %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <!-- Project Name and Category -->
-                    <div>
-                        <h5>{{ project.name }} 
-                            <small class="text-muted">({{ project.category }})</small>
-                            <small class="text-muted">({{ project.due_date }})</small>
-                        </h5>
-                        
-                        <!-- Project Description -->
-                        {% if project.description %}
-                            <p>{{ project.description|truncatechars:100 }}</p> <!-- Truncate long descriptions -->
-                        {% else %}
-                            <p><em>No description available.</em></p>
-                        {% endif %}
+
+                    <!-- Upvote and Project Info -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <!-- Upvote Button -->
+                        <div class="me-3" >
+                            {% if user.is_authenticated and not is_pma_admin %}
+                            <button class="btn" onclick="upvoteProject('{{ project.id }}')" id="upvote-button-{{ project.id }}">
+                                <i class="fas fa-arrow-up" id="upvote-icon-{{ project.id }}"></i>
+                            </button>
+                            <span id="upvote-count-{{ project.id }}">{{ project.upvotes }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Project Information -->
+                        <div>
+                            <!-- Project Name, Category, and Membership -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    {{ project.name }}
+                                    <small class="text-muted">({{ project.category }})</small>
+                                    <small class="text-muted">({{ project.due_date }})</small>
+                                </h5>
+                                <div class="ms-2">
+                                    {% if project_status|dict_key:project.id == 'member' %}
+                                    {% if project.owner == request.user %}
+                                        <span class="badge bg-dark">Owner</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Member</span>
+                                    {% endif %}
+                                {% elif project_status|dict_key:project.id == 'pending' %}
+                                    <span class="badge bg-warning">Request Pending</span>
+                                {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Project Description -->
+                            {% if project.description %}
+                                <p class="mb-0">{{ project.description|truncatechars:100 }}</p> <!-- Truncate long descriptions -->
+                            {% else %}
+                                <p class="mb-0"><em>No description available.</em></p>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <!-- Action Buttons -->
                     <div>
                         <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-outline-info">View</a>
 
-                        {% if user.is_authenticated and not is_pma_admin %}
-
-                            <!-- Upvote Button -->
-                            <button class="btn" onclick="upvoteProject('{{ project.id }}')" id="upvote-button-{{ project.id }}">
-                                <i class="fas fa-arrow-up" id="upvote-icon-{{ project.id }}"></i>
-                            </button>
-                            <span id="upvote-count-{{ project.id }}">{{ project.upvotes }}</span>
-
                             {% if project.owner == request.user %}
                                 <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-outline-info">Manage Requests</a>
                             {% endif %}
 
                             {% if project_status|dict_key:project.id == 'member' %}
-                                {% if project.owner == request.user %}
-                                    <span class="badge bg-dark">Owner</span>
-                                {% else %}
-                                    <span class="badge bg-success">Already a Member</span>
-                                    {% if project.owner != request.user %}
-                                        <form action="{% url 'leave_project' project.name project.id %}" method="post" class="d-inline-block">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger">Leave</button>
-                                        </form>
-                                    {% endif %}
+                                {% if project.owner != request.user %}
+                                    <form action="{% url 'leave_project' project.name project.id %}" method="post" class="d-inline-block">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger">Leave</button>
+                                    </form>
                                 {% endif %}
                             {% elif project_status|dict_key:project.id == 'pending' %}
-                                <span class="badge bg-warning">Request Pending</span>
                             {% else %}
                                 {% if project.current_reviewers_count < project.number_of_reviewers %}
                                     <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
@@ -81,7 +96,6 @@
                                     <p class="text-muted">Maximum number of reviewers reached.</p>
                                 {% endif %}
                             {% endif %}
-                        {% endif %}
 
                         {% if project_permissions|dict_key:project.id %}
                             <form action="{% url 'delete_project' project.name project.id %}" method="post" class="d-inline-block">

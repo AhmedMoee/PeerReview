@@ -3,7 +3,13 @@
 {% load socialaccount %}
 {% block content %}
 <div class="container mt-5">
-    <h1 class="mb-4">{{ project.name }}</h1>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <h1 class="card-title">{{ project.name }}</h1>
+        <p class="card-text">{{ project.description }}</p>
+      </div>
+    </div>
 
     {% if user.is_authenticated %}
         <div class="row">
@@ -69,7 +75,12 @@
                         <ul class="list-group">
                             {% for file in files %}
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <a href="{% url 'view_file' project.name project.id file.id %}">{{ file.name }}</a>
+                                    {% if user in project.members.all or is_owner_or_admin %}
+                                        <a href="{% url 'view_file' project.name project.id file.id %}">{{ file.name }}</a>
+                                    <!-- change visibility based on privacy -->
+                                    {% else %}
+                                        <p class="mb-0">{{ file.name }}</p>
+                                    {% endif %}
                                     {% if is_owner_or_admin %}
                                         <form action="{% url 'delete_file' project.name project.id file.id %}" method="post" class="d-inline-block">
                                             {% csrf_token %}
@@ -92,31 +103,37 @@
 
                 <!-- Request to Join Button for Common Users Only -->
                 {% if not user in project.members.all and not is_owner_or_admin %}
-                    <p>You are not a member of this project. Please request to join.</p>
-                    <form action="{% url 'request_to_join' project.id %}" method="post">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary">Request to Join</button>
-                    </form>
+                    {% if project.current_reviewers_count < project.number_of_reviewers %}
+                        <p>You are not a member of this project. Please request to join.</p>
+                        <form action="{% url 'request_to_join' project.id %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">Request to Join</button>
+                        </form>
+                    {% elif project.current_reviewers_count == project.number_of_reviewers %}
+                        <p>The maximum number of reviewers for this project has been reached. Please request to join when a spot becomes available.</p>
+                    {% endif %}
                 {% endif %}
 
             </div>
 
             <div class="col-lg-4">
                 <!-- Chat Section -->
-                <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h2 class="h4 mb-0">Project Chat</h2>
+                {% if user in project.members.all and is_owner_or_admin %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h2 class="h4 mb-0">Project Chat</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="chat-log" style="height: 300px; overflow-y: scroll; border: 1px solid #ced4da; padding: 15px; background-color: #f8f9fa; border-radius: .25rem; margin-bottom: 20px;"></div>
+                            <form id="message-form" method="post" action="{% url 'create_message' project.id %}">
+                                {% csrf_token %}
+                                <textarea id="chat-message-input" name="content" placeholder="Your next message..." rows="3" class="form-control mb-3" required></textarea>
+                                <button type="submit" class="btn btn-primary w-100">Send</button>
+                            </form>
+                            <button id="refresh-button" class="btn btn-secondary w-100 mt-3">Refresh Messages</button>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div id="chat-log" style="height: 300px; overflow-y: scroll; border: 1px solid #ced4da; padding: 15px; background-color: #f8f9fa; border-radius: .25rem; margin-bottom: 20px;"></div>
-                        <form id="message-form" method="post" action="{% url 'create_message' project.id %}">
-                            {% csrf_token %}
-                            <textarea id="chat-message-input" name="content" placeholder="Your next message..." rows="3" class="form-control mb-3" required></textarea>
-                            <button type="submit" class="btn btn-primary w-100">Send</button>
-                        </form>
-                        <button id="refresh-button" class="btn btn-secondary w-100 mt-3">Refresh Messages</button>
-                    </div>
-                </div>
+                {% endif %}
 
                 <!-- Project Members Section -->
                 <div class="card mb-4">
@@ -138,17 +155,39 @@
                 </div>
             </div>
         </div>
-    {% else %}
+        {% else %}
         <!-- Non-authenticated User Section -->
         <div class="row">
+            <!-- Main content area (files list) -->
             <div class="col-lg-8">
-                <h2>{{ project.name }}</h2>
-                <p><strong>Owner:</strong> {{ project.owner.username }}</p>
-                <p>{{ project.description }}</p>
-                <a href="{% provider_login_url 'google' %}?next=/" class="btn btn-primary mb-4">Login with Google</a> 
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h4 mb-0">All Uploaded Files for {{ project.name }}</h2>
+                    </div>
+                    <div class="card-body">
+
+                        <ul class="list-group">
+                            <p class="mb-0">Please log in to access the uploaded files for {{ project.name }}.</p>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Members Section -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h4 mb-0">Project Owner</h2>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>{{ project.owner.get_full_name|default:project.owner.username }}</strong></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
-    {% endif %}
+        {% endif %}
 
     {% if is_pma_admin %}
         <!-- PMA Admins go back to their dashboard -->

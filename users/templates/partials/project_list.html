@@ -24,11 +24,11 @@
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <!-- Project Name and Category -->
                     <div>
-                        <h5>{{ project.name }} 
+                        <h5>{{ project.name }}
                             <small class="text-muted">({{ project.category }})</small>
                             <small class="text-muted">({{ project.due_date }})</small>
                         </h5>
-                        
+
                         <!-- Project Description -->
                         {% if project.description %}
                             <p>{{ project.description|truncatechars:100 }}</p> <!-- Truncate long descriptions -->

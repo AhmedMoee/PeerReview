@@ -912,3 +912,55 @@ def popular_projects(request):
             project.latest_upload.file_type = file_type
         
     return render(request, 'popular_projects.html', {'projects': projects})
+
+@login_required
+def upload_project_files(request, project_name, id):
+    project = get_object_or_404(Project, id=id)
+    
+    if project.name.lower() != project_name.lower():
+        return redirect('project_list')
+
+    if request.method == 'POST' and request.user == project.owner:
+        s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+
+        try:
+            # Handle rubric upload
+            if 'rubric' in request.FILES:
+                rubric_file = request.FILES['rubric']
+                print(f'Uploading rubric {rubric_file.name} to S3...')
+                
+                # Upload to S3
+                s3.upload_fileobj(
+                    rubric_file,
+                    AWS_STORAGE_BUCKET_NAME,
+                    f'{project_name}/rubrics/{rubric_file.name}'
+                )
+                
+                # Update project model
+                project.rubric = f'{project_name}/rubrics/{rubric_file.name}'
+                print('Rubric upload successful!')
+
+            # Handle review guidelines upload
+            if 'review_guidelines' in request.FILES:
+                guidelines_file = request.FILES['review_guidelines']
+                print(f'Uploading guidelines {guidelines_file.name} to S3...')
+                
+                # Upload to S3
+                s3.upload_fileobj(
+                    guidelines_file,
+                    AWS_STORAGE_BUCKET_NAME,
+                    f'{project_name}/guidelines/{guidelines_file.name}'
+                )
+                
+                # Update project model
+                project.review_guidelines = f'{project_name}/guidelines/{guidelines_file.name}'
+                print('Guidelines upload successful!')
+
+            project.save()
+            messages.success(request, 'Files uploaded successfully!')
+
+        except Exception as e:
+            print(f'Error uploading files: {e}')
+            messages.error(request, f'Error uploading files: {str(e)}')
+
+    return redirect('project_main_view', project_name=project.name, id=project.id)

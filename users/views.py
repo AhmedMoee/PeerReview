@@ -839,6 +839,7 @@ def popular_projects(request):
     bucket_name = AWS_STORAGE_BUCKET_NAME
 
     for project in projects:
+        project.pending_request = JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists()
         project.latest_upload = Upload.objects.filter(project=project).order_by('-uploaded_at').first()
 
         if project.latest_upload:

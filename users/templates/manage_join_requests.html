@@ -9,7 +9,7 @@
         <ul class="list-group">
             {% for request in pending_requests %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ request.user.get_full_name}}
+                    {{ request.user.get_full_name|default:request.user.username }}
                     <div>
                         <a href="{% url 'view_profile' request.user.id %}" class="btn btn-outline-info">View Profile</a>
                         <form action="{% url 'approve_join_request' request.id %}" method="post" class="d-inline">

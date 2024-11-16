@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 
 {% block content %}
 <div class="container mt-5">
@@ -29,7 +30,11 @@
                     </div>
 
                     <div class="card-footer text-center">
+                        {% if user|is_admin %}
+                        <a href="{% url 'view_profile' user.id %}" class="btn btn-outline-success w-100">View Admin Profile</a>
+                        {% else %}
                         <a href="{% url 'select_project_for_invite' user.id %}" class="btn btn-outline-success w-100">Invite</a>
+                        {% endif %}
                     </div>
                 </div>
             </a>

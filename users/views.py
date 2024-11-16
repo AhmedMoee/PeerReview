@@ -34,18 +34,23 @@ def dashboard(request):
         # look for first name, if it doesn't exist, use their username
         user_name = request.user.first_name or request.user.username
 
+        # count pending invitations for the user
+        pending_invitations_count = ProjectInvitation.objects.filter(
+            invited_user=request.user,
+            status='PENDING'
+        ).count()
+
         if request.user.groups.filter(name='PMA Administrators').exists():
             # Render the PMA Administrator dashboard
-            return pma_dashboard(request)
+            return pma_dashboard(request, user_name)
         else:
             # Render the Common User dashboard
-            return common_dashboard(request)
+            return common_dashboard(request, user_name, pending_invitations_count)
     # if not authenticated, anon user, redirect to home page (with Google login option)
     return anonymous_dashboard(request)
     
 @login_required
-def common_dashboard(request):
-    user_name = request.user.first_name or request.user.username
+def common_dashboard(request, user_name, pending_invitations_count):
     owned_projects = Project.objects.filter(owner=request.user)
     member_projects = Project.objects.filter(members=request.user).exclude(owner=request.user)
 
@@ -53,6 +58,7 @@ def common_dashboard(request):
         'user_name': user_name,
         'owned_projects': owned_projects,
         'member_projects': member_projects,
+        'pending_invitations_count': pending_invitations_count,
     })
     
 #display project list helper method    
@@ -84,8 +90,7 @@ def get_projects_context(request):
     }
 
 @login_required
-def pma_dashboard(request):
-    user_name = request.user.first_name or request.user.username
+def pma_dashboard(request, user_name):
     context = get_projects_context(request)
     context['user_name'] = user_name
     return render(request, 'pma_admin_dashboard.html', context)
@@ -770,7 +775,7 @@ def select_project_for_invite(request, user_id):
     
     return render(request, 'select_project.html', {
         'invited_user': invited_user,
-        'user_projects': user_projects
+        'user_projects': user_projects,
     })
 
 
@@ -815,7 +820,6 @@ def invitation_list(request):
     return render(request, 'view_invites.html', {
         'pending_invitations': pending_invitations
     })
-
 
 @login_required
 def upvote_project(request, project_id):

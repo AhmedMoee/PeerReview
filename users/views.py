@@ -276,7 +276,6 @@ def view_project(request, project_name, id):
         uploads = uploads.filter(Q(name__icontains=search_query) | Q(keywords__icontains=search_query))
 
     is_owner_or_admin = (project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists())
-
     context = {
         'project': project,
         'files': uploads,
@@ -324,6 +323,7 @@ def project_upload(request, project_name, id):
 
                 # Save metadata to the database
                 new_upload = form.save(commit=False)
+                new_upload.owner = request.user
                 new_upload.project = project
                 new_upload.file = uploaded_file.name
                 new_upload.save()
@@ -407,7 +407,7 @@ def delete_file(request, project_name, id, file_id):
     file_obj = get_object_or_404(Upload, id=file_id, project=project)
 
     # Check if the user has permissions to delete the file
-    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists():
+    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists() or request.user == file_obj.owner:
         s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
         bucket_name = AWS_STORAGE_BUCKET_NAME
 
@@ -655,6 +655,7 @@ def view_file(request, project_name, id, file_id):
             'prompts': prompts,
             'transcription_text': transcription_text,
             'job_name': job_name,
+            'upload_owner': upload.owner,
         }
 
         return render(request, 'view_file.html', context)
@@ -772,8 +773,8 @@ def show_all_users(request):
     users = User.objects.exclude(id=request.user.id)
 
     # remove django admin users
-    users = users.exclude(is_staff=True)  # exclude staff users (admins)
-    users = users.exclude(is_superuser=True)  # exclude superuser accounts
+    users = users.exclude(is_staff=True)  # exclude staff status accounts
+    users = users.exclude(is_superuser=True)  # exclude superuser status accounts
 
     return render(request, 'search_users.html', {'users': users})
 

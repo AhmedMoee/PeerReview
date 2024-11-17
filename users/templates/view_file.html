@@ -42,7 +42,7 @@
             <p><strong>Uploaded At:</strong> {{ uploaded_at }}</p>
         </div>
 
-        {% if request.user == project.owner %}
+        {% if request.user == upload_owner %}
         <div class="update-metadata mb-4 p-4 border rounded bg-light" >
             <h3>Update File Details</h3>
                 <form method="post" enctype="multipart/form-data" class="mb-3">

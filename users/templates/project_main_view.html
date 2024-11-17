@@ -81,7 +81,8 @@
                                     {% else %}
                                         <p class="mb-0">{{ file.name }}</p>
                                     {% endif %}
-                                    {% if is_owner_or_admin %}
+                                    <!-- is_owner_or_admin = is project owner or admin -->
+                                    {% if is_owner_or_admin or request.user == file_obj.owner %}
                                         <form action="{% url 'delete_file' project.name project.id file.id %}" method="post" class="d-inline-block">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-danger btn-sm">Delete</button>

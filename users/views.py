@@ -768,8 +768,13 @@ def refresh_transcription_status(request, job_name, file_id):
 
 @login_required
 def show_all_users(request):
-    # Get all users except the logged-in user
+    # Get all users except the logged-in user and django admin users
     users = User.objects.exclude(id=request.user.id)
+
+    # remove django admin users
+    users = users.exclude(is_staff=True)  # exclude staff users (admins)
+    users = users.exclude(is_superuser=True)  # exclude superuser accounts
+
     return render(request, 'search_users.html', {'users': users})
 
 from .models import ProjectInvitation

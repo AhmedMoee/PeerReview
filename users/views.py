@@ -207,6 +207,14 @@ def approve_join_request(request, request_id):
     join_request.save()
 
     join_request.project.members.add(join_request.user)
+    
+    # Check for existing invitations and resolve them
+    ProjectInvitation.objects.filter(
+        project=join_request.project,
+        invited_user=join_request.user,
+        status='PENDING'
+    ).update(status='ACCEPTED')
+    
     return redirect('manage_join_requests', project_id=join_request.project.id)
 
 @login_required
@@ -821,22 +829,30 @@ def handle_invitation(request, invitation_id):
 
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+
         if action == 'accept':
+            # Add user to project members
             invitation.project.members.add(request.user)
-            # ProjectMembership.objects.create(
-            #     user=request.user,
-            #     project=invitation.project,
-            #     role='MEMBER'
-            # )
+
+            # Accept the invitation
             invitation.status = 'ACCEPTED'
+            invitation.response_date = datetime.now()
+            invitation.save()
+
+            # Check for existing join requests and resolve them
+            JoinRequest.objects.filter(
+                project=invitation.project,
+                user=request.user,
+                status='pending'
+            ).update(status='accepted')
+
             messages.success(request, f'You have joined {invitation.project.name}.')
         elif action == 'decline':
             invitation.status = 'DECLINED'
+            invitation.response_date = datetime.now()
+            invitation.save()
+
             messages.info(request, f'You have declined the invitation to {invitation.project.name}.')
-        
-        invitation.response_date = datetime.now()
-        invitation.save()
 
     return redirect('view_invites')
 

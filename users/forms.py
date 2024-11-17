@@ -1,6 +1,7 @@
 from django import forms
 from .models import Upload
 from .models import Project, Prompt, PromptResponse, UserProfile
+from django.contrib.auth.models import User
 
 
 class FileUploadForm(forms.ModelForm):
@@ -76,3 +77,18 @@ class UploadMetaDataForm(forms.ModelForm):
     class Meta:
         model = Upload
         fields = ['name', 'description', 'keywords']
+
+class ChangeUsernameForm(forms.Form):
+    new_username = forms.CharField(
+        max_length=150,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        label="New Username"
+    )
+
+    def clean_new_username(self):
+        new_username = self.cleaned_data['new_username']
+        if User.objects.filter(username=new_username).exists():
+            raise forms.ValidationError(f'Username "{new_username}" is not available.')
+        return new_username
+    

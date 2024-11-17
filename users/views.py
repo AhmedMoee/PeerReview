@@ -15,6 +15,8 @@ import time
 import uuid
 from django.http import JsonResponse, HttpResponseRedirect
 from urllib.parse import urlparse
+from .forms import ChangeUsernameForm
+
 
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
@@ -964,3 +966,20 @@ def upload_project_files(request, project_name, id):
             messages.error(request, f'Error uploading files: {str(e)}')
 
     return redirect('project_main_view', project_name=project.name, id=project.id)
+
+@login_required
+def settings(request):
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    form = ChangeUsernameForm(request.POST or None)
+
+    if request.method == 'POST':
+        if form.is_valid():
+            new_username = form.cleaned_data['new_username']
+
+            user_profile.user.username = new_username
+            user_profile.user.save()
+
+            messages.success(request, f'Your username has been updated to "{new_username}".')
+            return redirect('settings')  
+
+    return render(request, 'settings.html', {'form': form, 'user_profile': user_profile})

@@ -405,9 +405,10 @@ def delete_project(request, project_name, id):
 def delete_file(request, project_name, id, file_id):
     project = get_object_or_404(Project, id=id, name=project_name)
     file_obj = get_object_or_404(Upload, id=file_id, project=project)
+    file_obj_owner = request.user == file_obj.owner
 
     # Check if the user has permissions to delete the file
-    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists() or request.user == file_obj.owner:
+    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists() or file_obj_owner:
         s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
         bucket_name = AWS_STORAGE_BUCKET_NAME
 
@@ -859,6 +860,9 @@ def handle_invitation(request, invitation_id):
             invitation.save()
 
             messages.info(request, f'You have declined the invitation to {invitation.project.name}.')
+
+        # delete the invite so users can be invited to join a project again
+        invitation.delete()
 
     return redirect('view_invites')
 

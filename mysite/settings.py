@@ -24,18 +24,11 @@ load_dotenv()
 SECRET_KEY = 'django-insecure-+!r0i(emln-g5)ous&knffqw2l@b@x26dowy^y50#mm*swjp1)'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'uva-cs-3240-project-b-10-7d152fd5a130.herokuapp.com']
 
-# testing
-# ID: 9, Domain: example.com, Name: example.com
-# ID: 7, Domain: http://127.0.0.1:8000, Name: http://127.0.0.1:8000
-# ID: 10, Domain: https://uva-cs-3240-project-b-10-7d152fd5a130.herokuapp.com/, Name: https://uva-cs-3240-project-b-10-7d152fd5a130.hero
-SITE_ID=7
-
-# development
-# SITE_ID=4
+SITE_ID=4
 
 INSTALLED_APPS = [
     'daphne',
@@ -56,25 +49,14 @@ INSTALLED_APPS = [
     'storages'
 ]
 
-# SOCIALACCOUNT_PROVIDERS = {
-#
-#     "google": {
-#          'APP': {
-#             'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
-#             'secret': os.getenv('GOOGLE_SECRET'),  # Replace with your actual Client Secret
-#             'key': ''
-#         },
-#         "SCOPE": [
-#             'profile',
-#             'email'
-#         ],
-#         'AUTH_PARAMS': {'access_type': 'online'}
-#     }
-# }
-
 SOCIALACCOUNT_PROVIDERS = {
 
     "google": {
+         'APP': {
+            'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
+            'secret': os.getenv('GOOGLE_SECRET'),  # Replace with your actual Client Secret
+            'key': ''
+        },
         "SCOPE": [
             'profile',
             'email'
@@ -82,6 +64,17 @@ SOCIALACCOUNT_PROVIDERS = {
         'AUTH_PARAMS': {'access_type': 'online'}
     }
 }
+
+# SOCIALACCOUNT_PROVIDERS = {
+#
+#     "google": {
+#         "SCOPE": [
+#             'profile',
+#             'email'
+#         ],
+#         'AUTH_PARAMS': {'access_type': 'online'}
+#     }
+# }
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -111,21 +111,27 @@ def create_project(request):
 
     return render(request, 'create_project.html', {'form': form})
 
+from django.db.models import Exists, OuterRef
 
 def project_list(request):
-    projects = Project.objects.all()
-    project_status = {}
+    projects = Project.objects.annotate(
+        user_has_upvoted=Exists(
+            Project.upvoters.through.objects.filter(
+                user_id=request.user.id, project_id=OuterRef('id')
+            )
+        )
+    )
 
-    # Check if the user is a PMA Administrator
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
     sort_by = request.GET.get('sort', '-created_at')
-    if sort_by == 'due_date' :
+
+    if sort_by == 'due_date':
         projects = projects.order_by(F('due_date').asc(nulls_last=True))
     elif sort_by == '-due_date':
         projects = projects.order_by('-due_date')
-    elif sort_by == 'created_at' :
+    elif sort_by == 'created_at':
         projects = projects.order_by('created_at')
-    elif sort_by == '-created_at' :
+    elif sort_by == '-created_at':
         projects = projects.order_by('-created_at')
 
     search_query = request.GET.get('q', '')
@@ -135,21 +141,18 @@ def project_list(request):
             Q(category__icontains=search_query)
         )
 
-    visible_projects = []
-    project_status = {}
+    visible_projects = [
+        project for project in projects
+        if not project.is_private or project.owner == request.user
+        or request.user in project.members.all() or is_pma_admin
+    ]
 
-    for project in projects:
-        # Check visibility conditions
-        if not project.is_private or project.owner == request.user or request.user in project.members.all() or is_pma_admin:
-            visible_projects.append(project)
-
-            if request.user.is_authenticated and not is_pma_admin:
-                if request.user in project.members.all():
-                    project_status[project.id] = 'member'
-                elif JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists():
-                    project_status[project.id] = 'pending'
-                else:
-                    project_status[project.id] = 'not_member'
+    project_status = {
+        project.id: 'member' if request.user in project.members.all() else
+        'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
+        'not_member'
+        for project in visible_projects if request.user.is_authenticated and not is_pma_admin
+    }
 
     project_permissions = {
         project.id: project.owner == request.user or is_pma_admin
@@ -204,6 +207,14 @@ def approve_join_request(request, request_id):
     join_request.save()
 
     join_request.project.members.add(join_request.user)
+    
+    # Check for existing invitations and resolve them
+    ProjectInvitation.objects.filter(
+        project=join_request.project,
+        invited_user=join_request.user,
+        status='PENDING'
+    ).update(status='ACCEPTED')
+    
     return redirect('manage_join_requests', project_id=join_request.project.id)
 
 @login_required
@@ -508,6 +519,8 @@ def load_messages(request, project_id):
 import mimetypes  # https://docs.python.org/3/library/mimetypes.html
 from .forms import PromptForm, PromptResponseForm
 from .models import Prompt
+from django.template.loader import render_to_string
+
 
 @login_required
 def view_file(request, project_name, id, file_id):
@@ -563,6 +576,22 @@ def view_file(request, project_name, id, file_id):
                 new_prompt.upload = upload
                 new_prompt.created_by = request.user
                 new_prompt.save()
+                
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        # Re-fetch prompts to include the new one
+                        prompts = upload.prompts.all()
+
+                        # Render the partial template
+                        prompts_html = render_to_string('partials/prompts_partial.html', {
+                            'prompts': prompts,
+                            'prompt_form': PromptForm(),
+                            'response_form': PromptResponseForm(),
+                            'project': project,
+                            'file_id': file_id,
+                        }, request=request)
+
+                        return JsonResponse({'html': prompts_html})
+                
                 return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
 
         # Handle response form submission
@@ -575,6 +604,22 @@ def view_file(request, project_name, id, file_id):
                 new_response.prompt = prompt
                 new_response.created_by = request.user
                 new_response.save()
+                
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        # Re-fetch prompts to include the new one
+                        prompts = upload.prompts.all()
+
+                        # Render the partial template
+                        prompts_html = render_to_string('partials/prompts_partial.html', {
+                            'prompts': prompts,
+                            'prompt_form': PromptForm(),
+                            'response_form': PromptResponseForm(),
+                            'project': project,
+                            'file_id': file_id,
+                        }, request=request)
+
+                        return JsonResponse({'html': prompts_html})
+                
                 return redirect('view_file', project_name=project_name, id=id, file_id=file_id)
 
         # handling metadata update submission
@@ -631,7 +676,7 @@ def view_profile(request, user_id):
     projects = Project.objects.filter(Q(owner=user) | Q(members=user)).distinct()
 
     return render(request, 'view_profile.html', {'user': user, 'profile': profile, 'projects': projects,
-                                                 'referer': referer})
+                                                'referer': referer})
 
 @login_required
 def edit_profile(request):
@@ -784,22 +829,30 @@ def handle_invitation(request, invitation_id):
 
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+
         if action == 'accept':
+            # Add user to project members
             invitation.project.members.add(request.user)
-            # ProjectMembership.objects.create(
-            #     user=request.user,
-            #     project=invitation.project,
-            #     role='MEMBER'
-            # )
+
+            # Accept the invitation
             invitation.status = 'ACCEPTED'
+            invitation.response_date = datetime.now()
+            invitation.save()
+
+            # Check for existing join requests and resolve them
+            JoinRequest.objects.filter(
+                project=invitation.project,
+                user=request.user,
+                status='pending'
+            ).update(status='accepted')
+
             messages.success(request, f'You have joined {invitation.project.name}.')
         elif action == 'decline':
             invitation.status = 'DECLINED'
+            invitation.response_date = datetime.now()
+            invitation.save()
+
             messages.info(request, f'You have declined the invitation to {invitation.project.name}.')
-        
-        invitation.response_date = datetime.now()
-        invitation.save()
 
     return redirect('view_invites')
 
@@ -833,7 +886,13 @@ def upvote_project(request, project_id):
         return JsonResponse({'status': 'added', 'upvotes': project.upvotes})
 
 def popular_projects(request):
-    projects = Project.objects.all().order_by('-upvotes')  
+    projects = Project.objects.annotate(
+        user_has_upvoted=Exists(
+            Project.upvoters.through.objects.filter(
+                user_id=request.user.id, project_id=OuterRef('id')
+            )
+        )
+    ).order_by('-upvotes')  
 
     s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
     bucket_name = AWS_STORAGE_BUCKET_NAME
@@ -869,3 +928,55 @@ def popular_projects(request):
             project.latest_upload.file_type = file_type
         
     return render(request, 'popular_projects.html', {'projects': projects})
+
+@login_required
+def upload_project_files(request, project_name, id):
+    project = get_object_or_404(Project, id=id)
+    
+    if project.name.lower() != project_name.lower():
+        return redirect('project_list')
+
+    if request.method == 'POST' and request.user == project.owner:
+        s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+
+        try:
+            # Handle rubric upload
+            if 'rubric' in request.FILES:
+                rubric_file = request.FILES['rubric']
+                print(f'Uploading rubric {rubric_file.name} to S3...')
+                
+                # Upload to S3
+                s3.upload_fileobj(
+                    rubric_file,
+                    AWS_STORAGE_BUCKET_NAME,
+                    f'{project_name}/rubrics/{rubric_file.name}'
+                )
+                
+                # Update project model
+                project.rubric = f'{project_name}/rubrics/{rubric_file.name}'
+                print('Rubric upload successful!')
+
+            # Handle review guidelines upload
+            if 'review_guidelines' in request.FILES:
+                guidelines_file = request.FILES['review_guidelines']
+                print(f'Uploading guidelines {guidelines_file.name} to S3...')
+                
+                # Upload to S3
+                s3.upload_fileobj(
+                    guidelines_file,
+                    AWS_STORAGE_BUCKET_NAME,
+                    f'{project_name}/guidelines/{guidelines_file.name}'
+                )
+                
+                # Update project model
+                project.review_guidelines = f'{project_name}/guidelines/{guidelines_file.name}'
+                print('Guidelines upload successful!')
+
+            project.save()
+            messages.success(request, 'Files uploaded successfully!')
+
+        except Exception as e:
+            print(f'Error uploading files: {e}')
+            messages.error(request, f'Error uploading files: {str(e)}')
+
+    return redirect('project_main_view', project_name=project.name, id=project.id)

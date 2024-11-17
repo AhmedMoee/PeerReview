@@ -1,0 +1,53 @@
+<div class="discussion-container card mt-4 p-3">
+    <div id="prompt-section" class="prompt-section">
+        <h3>Discussion</h3>
+
+        <!-- Display Prompts and Responses -->
+        <div id="prompts-container" class="prompts-container">
+            {% for prompt in prompts %}
+                <div id="prompt-{{ prompt.id }}" class="prompt-card card mb-3">
+                    <!-- Prompt Header -->
+                    <div class="card-header">
+                        <strong>{{ prompt.content }}</strong>
+                        <small class="text-muted float-end">{{ prompt.created_at|date:"F j, Y, g:i a" }}</small>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="text-muted mb-3">Replies:</h6>
+                        <ul class="list-group list-group-flush mb-3">
+                            {% for response in prompt.responses.all %}
+                                <li class="list-group-item">
+                                    <strong>{{ response.created_by.username }}:</strong> {{ response.content }}
+                                    <small class="text-muted float-end">{{ response.created_at|date:"F j, Y, g:i a" }}</small>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item text-muted">No replies yet.</li>
+                            {% endfor %}
+                        </ul>
+
+                        <!-- Add Response Form -->
+                        <form id="add-response-form-{{ prompt.id }}" class="add-response-form mt-2 d-flex align-items-center" method="post" data-prompt-id="{{ prompt.id }}" action="{% url 'view_file' project.name project.id file_id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="add_response" value="1">
+                            <input type="hidden" name="prompt_id" value="{{ prompt.id }}">
+                            <input type="text" name="content" placeholder="Reply to this discussion..." class="form-control me-2" required>
+                            <button type="submit" name="add_response" class="btn btn-secondary btn-sm">Reply</button>
+                        </form>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-muted">No prompts available for this file. Start a new discussion below!</p>
+            {% endfor %}
+        </div>
+
+        <!-- Add Prompt Form -->
+        <div id="add-prompt-form-section" class="mb-4 mt-5">
+            <h5>Start a New Discussion</h5>
+            <form id="add-prompt-form" method="post" action="{% url 'view_file' project.name project.id file_id %}">
+                {% csrf_token %}
+                <input type="hidden" name="add_prompt" value="1">
+                <textarea name="content" placeholder="Propose a question for editors, or if you're an editor, share your feedback here..." class="form-control mb-2" rows="3" required></textarea>
+                <button type="submit" name="add_prompt" class="btn btn-primary">Post Discussion</button>
+            </form>
+        </div>
+    </div>
+</div>

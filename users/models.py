@@ -3,7 +3,7 @@ from django.utils.timezone import now
 from django.contrib.auth.models import User
 
 CATEGORIES = (
-     ('ARCHITECTURE', 'Architecture'),
+    ('ARCHITECTURE', 'Architecture'),
     ('ARTWORK', 'Artwork'),
     ('BIOLOGY', 'Biology'),
     ('BUSINESS', 'Business'),

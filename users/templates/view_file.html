@@ -94,12 +94,12 @@
 <script>
     $(document).ready(function() {
         console.log("JavaScript is working on this page");
-    
+
         // Handle Add Prompt Form Submission
         $(document).on('submit', '#add-prompt-form', function(e) {
             e.preventDefault(); // Prevent the default form submission behavior
             console.log('Add Prompt form intercepted by AJAX'); // Debugging log
-    
+
             const form = $(this);
             $.ajax({
                 type: form.attr('method'),
@@ -116,12 +116,12 @@
                 }
             });
         });
-    
+
         // Handle Add Response Form Submission
         $(document).on('submit', '.add-response-form', function(e) {
             e.preventDefault(); // Prevent the default form submission behavior
             console.log('Add Response form intercepted by AJAX'); // Debugging log
-    
+
             const form = $(this);
             $.ajax({
                 type: form.attr('method'),
@@ -138,7 +138,7 @@
                 }
             });
         });
-    
+
         // Include CSRF token in AJAX requests
         function getCookie(name) {
             let cookieValue = null;
@@ -156,7 +156,7 @@
             return cookieValue;
         }
         const csrftoken = getCookie('csrftoken');
-    
+
         $.ajaxSetup({
             beforeSend: function(xhr, settings) {
                 if (!(/^GET|HEAD|OPTIONS|TRACE$/i.test(settings.type)) && !this.crossDomain) {
@@ -164,7 +164,7 @@
                 }
             }
         });
-    });    
+    });
 </script>
 <script src="{% static 'actions.js' %}"></script>
 {% endblock %}

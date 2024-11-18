@@ -1,6 +1,7 @@
 from django import forms
 from .models import Upload
 from .models import Project, Prompt, PromptResponse, UserProfile
+from django.contrib.auth.models import User
 
 
 class FileUploadForm(forms.ModelForm):
@@ -76,3 +77,8 @@ class UploadMetaDataForm(forms.ModelForm):
     class Meta:
         model = Upload
         fields = ['name', 'description', 'keywords']
+        
+class UserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name']

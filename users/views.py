@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, F
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse, HttpResponseBadRequest
 from .models import Upload, JoinRequest, Project, Message, User, UserProfile
-from .forms import FileUploadForm, ProjectForm, UserProfileForm, UploadMetaDataForm
+from .forms import FileUploadForm, ProjectForm, UserProfileForm, UploadMetaDataForm, UserEditForm
 from typing import AsyncGenerator
 import asyncio
 import json
@@ -980,3 +980,24 @@ def upload_project_files(request, project_name, id):
             messages.error(request, f'Error uploading files: {str(e)}')
 
     return redirect('project_main_view', project_name=project.name, id=project.id)
+
+@login_required
+def settings(request):
+    user = request.user  # Get the currently logged-in user
+
+    if request.method == 'POST':  # User is saving changes
+        form = UserEditForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile has been updated successfully.')
+            return redirect('settings')  # Redirect to the same settings page to prevent resubmission
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:  # Default view
+        form = UserEditForm(instance=user)
+
+    # Pass the user object to the template explicitly
+    return render(request, 'settings.html', {
+        'form': form,
+        'user': user,  # Pass the user object explicitly
+    })

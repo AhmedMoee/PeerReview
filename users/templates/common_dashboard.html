@@ -46,8 +46,6 @@
 <!--                </div>-->
 <!--            </div>-->
 
-            <!-- Logout Button -->
-            <a href="{% url 'logout' %}" class="btn btn-danger w-100 mt-4">Logout</a>
         </div>
 
         <!-- Column for Owned Projects and Member Projects -->
@@ -90,6 +88,14 @@
                 </div>
             </div>
         </div>
+
+        <!-- logout button in different container to help with UI on mobile -->
+        <div class="col-md-3">
+            <!-- Logout Button -->
+            <a href="{% url 'logout' %}" class="btn btn-danger w-100 mt-4">Logout</a>
+        </div>
+
+
     </div>
 </div>
 {% endblock %}

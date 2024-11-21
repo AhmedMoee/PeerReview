@@ -50,7 +50,7 @@ class Project(models.Model):
 
 class Upload(models.Model):
     name = models.CharField(max_length=100)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_files')
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_files', null=False)
     file = models.FileField(upload_to='uploads/')
     uploaded_at = models.DateTimeField(default=now)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='uploads')

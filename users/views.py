@@ -332,7 +332,7 @@ def project_upload(request, project_name, id):
 
                 # Construct the transcription output key
                 safe_project_name = project_name.replace(' ', '_')
-                output_key = f"{safe_project_name}/{uploaded_file.name}-transcription.json"
+                output_key = f"{safe_project_name}/{uploaded_file.name}"
                 new_upload.output_key = output_key
                 new_upload.save()
 

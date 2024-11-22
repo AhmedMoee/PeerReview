@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 
 {% block content %}
 <div class="container mt-5">
@@ -31,16 +32,22 @@
                         <p><em>No specializations added yet.</em></p>
                     {% endif %}
 
-                    <h3>Projects Involved</h3>
-                    <ul>
-                        {% for project in projects %}
-                            <li>
-                                <a href="{% url 'project_main_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
-                            </li>
-                        {% empty %}
-                            <li>You are not part of any projects yet.</li>
-                        {% endfor %}
-                    </ul>
+                    {% if not user|is_admin %}
+                        <h3>Projects Involved</h3>
+                        <ul>
+                            {% for project in projects %}
+                                <li>
+                                    <a href="{% url 'project_main_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
+                                </li>
+                            {% empty %}
+                                {% if user == request.user %}
+                                    <li><em>You are not part of any projects yet.</em></li>
+                                {% else %}
+                                    <li><em>{{ user.get_full_name }} is not a part of any projects yet.</em></li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
 
                     <h3>Social Links</h3>
                     <ul class="list-inline">

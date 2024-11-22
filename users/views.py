@@ -209,6 +209,14 @@ def approve_join_request(request, request_id):
     join_request.save()
 
     join_request.project.members.add(join_request.user)
+    
+    # Check for existing invitations and resolve them
+    ProjectInvitation.objects.filter(
+        project=join_request.project,
+        invited_user=join_request.user,
+        status='PENDING'
+    ).update(status='ACCEPTED')
+    
     return redirect('manage_join_requests', project_id=join_request.project.id)
 
 @login_required
@@ -270,7 +278,6 @@ def view_project(request, project_name, id):
         uploads = uploads.filter(Q(name__icontains=search_query) | Q(keywords__icontains=search_query))
 
     is_owner_or_admin = (project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists())
-
     context = {
         'project': project,
         'files': uploads,
@@ -318,6 +325,7 @@ def project_upload(request, project_name, id):
 
                 # Save metadata to the database
                 new_upload = form.save(commit=False)
+                new_upload.owner = request.user
                 new_upload.project = project
                 new_upload.file = uploaded_file.name
                 new_upload.save()
@@ -399,9 +407,10 @@ def delete_project(request, project_name, id):
 def delete_file(request, project_name, id, file_id):
     project = get_object_or_404(Project, id=id, name=project_name)
     file_obj = get_object_or_404(Upload, id=file_id, project=project)
+    file_obj_owner = request.user == file_obj.owner
 
     # Check if the user has permissions to delete the file
-    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists():
+    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists() or file_obj_owner:
         s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
         bucket_name = AWS_STORAGE_BUCKET_NAME
 
@@ -649,6 +658,7 @@ def view_file(request, project_name, id, file_id):
             'prompts': prompts,
             'transcription_text': transcription_text,
             'job_name': job_name,
+            'upload_owner': upload.owner,
         }
 
         return render(request, 'view_file.html', context)
@@ -762,8 +772,13 @@ def refresh_transcription_status(request, job_name, file_id):
 
 @login_required
 def show_all_users(request):
-    # Get all users except the logged-in user
+    # Get all users except the logged-in user and django admin users
     users = User.objects.exclude(id=request.user.id)
+
+    # remove django admin users
+    users = users.exclude(is_staff=True)  # exclude staff status accounts
+    users = users.exclude(is_superuser=True)  # exclude superuser status accounts
+
     return render(request, 'search_users.html', {'users': users})
 
 from .models import ProjectInvitation
@@ -823,22 +838,33 @@ def handle_invitation(request, invitation_id):
 
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+
         if action == 'accept':
+            # Add user to project members
             invitation.project.members.add(request.user)
-            # ProjectMembership.objects.create(
-            #     user=request.user,
-            #     project=invitation.project,
-            #     role='MEMBER'
-            # )
+
+            # Accept the invitation
             invitation.status = 'ACCEPTED'
+            invitation.response_date = datetime.now()
+            invitation.save()
+
+            # Check for existing join requests and resolve them
+            JoinRequest.objects.filter(
+                project=invitation.project,
+                user=request.user,
+                status='pending'
+            ).update(status='accepted')
+
             messages.success(request, f'You have joined {invitation.project.name}.')
         elif action == 'decline':
             invitation.status = 'DECLINED'
+            invitation.response_date = datetime.now()
+            invitation.save()
+
             messages.info(request, f'You have declined the invitation to {invitation.project.name}.')
-        
-        invitation.response_date = datetime.now()
-        invitation.save()
+
+        # delete the invite so users can be invited to join a project again
+        invitation.delete()
 
     return redirect('view_invites')
 

@@ -48,7 +48,9 @@
                             <!-- Project Name, Category, and Membership -->
                             <div class="d-flex align-items-center">
                                 <h5 class="mb-0">
-                                    {{ project.name }}
+                                    <a href="{% url 'project_main_view' project.name project.id %}" class="text-decoration-none">
+                                        {{ project.name }}
+                                    </a>
                                     {% if project.category %}
                                         <small class="text-muted">({{ project.category }})</small>
                                     {% else %}
@@ -85,8 +87,6 @@
 
                     <!-- Action Buttons -->
                     <div>
-                        <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-outline-info">View</a>
-
                             {% if project.owner == request.user %}
                                 <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-outline-info">Manage Requests</a>
                             {% endif %}

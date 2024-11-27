@@ -110,7 +110,8 @@ def create_project(request):
 from django.db.models import Exists, OuterRef
 
 def project_list(request):
-    projects = Project.objects.annotate(
+    # Fetch projects with annotations
+    projects = Project.objects.select_related('owner').annotate(
         user_has_upvoted=Exists(
             Project.upvoters.through.objects.filter(
                 user_id=request.user.id, project_id=OuterRef('id')
@@ -118,18 +119,21 @@ def project_list(request):
         )
     )
 
+    # Check if the user is a PMA admin
     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
-    sort_by = request.GET.get('sort', '-created_at')
 
+    # Apply sorting based on query params
+    sort_by = request.GET.get('sort', '-created_at')
     if sort_by == 'due_date':
         projects = projects.order_by(F('due_date').asc(nulls_last=True))
     elif sort_by == '-due_date':
-        projects = projects.order_by('-due_date')
+        projects = projects.order_by(F('due_date').desc(nulls_last=True))
     elif sort_by == 'created_at':
         projects = projects.order_by('created_at')
     elif sort_by == '-created_at':
         projects = projects.order_by('-created_at')
 
+    # Apply search filter
     search_query = request.GET.get('q', '')
     if search_query:
         projects = projects.filter(
@@ -137,24 +141,31 @@ def project_list(request):
             Q(category__icontains=search_query)
         )
 
+    # Filter visible projects
     visible_projects = [
         project for project in projects
         if not project.is_private or project.owner == request.user
         or request.user in project.members.all() or is_pma_admin
     ]
 
-    project_status = {
-        project.id: 'member' if request.user in project.members.all() else
-        'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
-        'not_member'
-        for project in visible_projects if request.user.is_authenticated and not is_pma_admin
-    }
+    # Determine project status for the current user
+    if request.user.is_authenticated and not is_pma_admin:
+        project_status = {
+            project.id: 'member' if request.user in project.members.all() else
+            'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
+            'not_member'
+            for project in visible_projects
+        }
+    else:
+        project_status = {}
 
+    # Determine project permissions for the current user
     project_permissions = {
         project.id: project.owner == request.user or is_pma_admin
         for project in visible_projects
     }
 
+    # Render the response
     return render(request, 'project_list.html', {
         'projects': visible_projects,
         'sort_by': sort_by,

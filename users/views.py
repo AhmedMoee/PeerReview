@@ -93,10 +93,6 @@ def anonymous_dashboard(request):
     return render(request, 'anonymous_dashboard.html', context)
 
 @login_required
-def settings(request):
-    return render(request, 'settings.html')
-
-@login_required
 def create_project(request):
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES)
@@ -992,22 +988,38 @@ def upload_project_files(request, project_name, id):
     return redirect('project_main_view', project_name=project.name, id=project.id)
 
 @login_required
-def settings(request):
-    user = request.user  # Get the currently logged-in user
+def settings_display(request):
+    return render(request, 'settings_display.html', {'user': request.user})
 
-    if request.method == 'POST':  # User is saving changes
-        form = UserEditForm(request.POST, instance=user)
+@login_required
+def settings_edit(request):
+    if request.method == 'POST':
+        form = UserEditForm(request.POST, instance=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Your profile has been updated successfully.')
-            return redirect('settings')  # Redirect to the same settings page to prevent resubmission
+            messages.success(request, 'Your account settings have been updated.')
+            return redirect('settings')  # Redirect to display page
         else:
             messages.error(request, 'Please correct the errors below.')
-    else:  # Default view
-        form = UserEditForm(instance=user)
+    else:
+        form = UserEditForm(instance=request.user)
 
-    # Pass the user object to the template explicitly
-    return render(request, 'settings.html', {
-        'form': form,
-        'user': user,  # Pass the user object explicitly
-    })
+    return render(request, 'settings_edit.html', {'form': form})
+
+
+# @login_required
+# def settings(request):
+#     if request.method == 'POST':
+#         form = UserEditForm(request.POST, instance=request.user)
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, 'Your account settings have been updated.')
+#             return redirect('settings')  # Redirect only on success
+#         else:
+#             messages.error(request, 'Please correct the errors below.')
+#             # Render the page with the form errors and show the edit view
+#             return render(request, 'settings.html', {'form': form, 'user': request.user, 'show_edit': True})
+#     else:
+#         form = UserEditForm(instance=request.user)
+
+#     return render(request, 'settings.html', {'form': form, 'user': request.user, 'show_edit': False})

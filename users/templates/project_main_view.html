@@ -175,6 +175,13 @@
                         {% endif %}
                     {% endif %}
 
+                    <!-- Manage Requests Button for Owner -->
+                    {% if user == project.owner %}
+                        <div class="mt-3">
+                            <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-primary w-100">Manage Join Requests</a>
+                        </div>
+                    {% endif %}
+
                     <!-- Delete Project Button for Owner -->
                     {% if user == project.owner %}
                         <div class="mt-3">

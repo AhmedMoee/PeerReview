@@ -1,6 +1,7 @@
 from django import forms
 from .models import Upload
 from .models import Project, Prompt, PromptResponse, UserProfile
+from django.contrib.auth.models import User
 
 
 class FileUploadForm(forms.ModelForm):
@@ -76,3 +77,30 @@ class UploadMetaDataForm(forms.ModelForm):
     class Meta:
         model = Upload
         fields = ['name', 'description', 'keywords']
+        
+import re
+class UserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter your username'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter your first name'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter your last name'}),
+        }
+        help_texts = {
+            'username': None,  # Remove the default help text for the username field
+        }
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+
+        # Ensure the username is unique, excluding the current user's username
+        if User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError(f'Username "{username}" is not available.')
+
+        # Restrict characters to letters and numbers only
+        if not re.match(r'^[a-zA-Z0-9]+$', username):
+            raise forms.ValidationError("Username can only contain letters and numbers.")
+
+        return username

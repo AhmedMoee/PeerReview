@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, F
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse, HttpResponseBadRequest
 from .models import Upload, JoinRequest, Project, Message, User, UserProfile
-from .forms import FileUploadForm, ProjectForm, UserProfileForm, UploadMetaDataForm
+from .forms import FileUploadForm, ProjectForm, UserProfileForm, UploadMetaDataForm, UserEditForm
 from typing import AsyncGenerator
 import asyncio
 import json
@@ -93,17 +93,19 @@ def anonymous_dashboard(request):
     return render(request, 'anonymous_dashboard.html', context)
 
 @login_required
-def settings(request):
-    return render(request, 'settings.html')
-
-@login_required
 def create_project(request):
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES)
         if form.is_valid():
             project = form.save(commit=False)
             project.owner = request.user
-            project.save()
+
+            if '/' in project.name:
+                safe_project_name = project.name.replace('/', '-')
+                project.name = safe_project_name
+                
+            project.save()  
+            
             project.members.add(request.user)
             return redirect('project_list')
     else:
@@ -990,3 +992,40 @@ def upload_project_files(request, project_name, id):
             messages.error(request, f'Error uploading files: {str(e)}')
 
     return redirect('project_main_view', project_name=project.name, id=project.id)
+
+@login_required
+def settings_display(request):
+    return render(request, 'settings_display.html', {'user': request.user})
+
+@login_required
+def settings_edit(request):
+    if request.method == 'POST':
+        form = UserEditForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your account settings have been updated.')
+            return redirect('settings')  # Redirect to display page
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = UserEditForm(instance=request.user)
+
+    return render(request, 'settings_edit.html', {'form': form})
+
+
+# @login_required
+# def settings(request):
+#     if request.method == 'POST':
+#         form = UserEditForm(request.POST, instance=request.user)
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, 'Your account settings have been updated.')
+#             return redirect('settings')  # Redirect only on success
+#         else:
+#             messages.error(request, 'Please correct the errors below.')
+#             # Render the page with the form errors and show the edit view
+#             return render(request, 'settings.html', {'form': form, 'user': request.user, 'show_edit': True})
+#     else:
+#         form = UserEditForm(instance=request.user)
+
+#     return render(request, 'settings.html', {'form': form, 'user': request.user, 'show_edit': False})

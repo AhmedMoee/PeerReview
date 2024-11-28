@@ -99,7 +99,13 @@ def create_project(request):
         if form.is_valid():
             project = form.save(commit=False)
             project.owner = request.user
-            project.save()
+
+            if '/' in project.name:
+                safe_project_name = project.name.replace('/', '-')
+                project.name = safe_project_name
+                
+            project.save()  
+            
             project.members.add(request.user)
             return redirect('project_list')
     else:

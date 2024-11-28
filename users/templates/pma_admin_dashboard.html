@@ -8,7 +8,7 @@
 
     <div class="mt-4">
         <!-- Include the Partial Template for the Project List -->
-        {% include 'partials/project_list.html' with projects=projects project_status=project_status project_permissions=project_permissions sort_by=sort_by search_query=search_query %}
+        {% include 'partials/project_list.html' with projects=projects project_status=project_status project_permissions=project_permissions sort_by=sort_by is_pma_admin=is_pma_admin search_query=search_query%}
     </div>
 
     <a href="{% url 'logout' %}" class="btn btn-danger mt-4">

@@ -109,6 +109,7 @@ def create_project(request):
 
 from django.db.models import Exists, OuterRef
 
+@login_required
 def project_list(request):
     # Fetch projects with annotations
     projects = Project.objects.select_related('owner').annotate(

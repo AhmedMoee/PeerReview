@@ -93,38 +93,46 @@
 
                     <!-- Dynamic Button Based on User's Relationship -->
                     <div class="d-flex justify-content-end align-items-center">
-                        {% if project_status|dict_key:project.id == 'member' %}
-                            {% if project.owner == request.user %}
-                                <!-- Owner State -->
-                                <span class="btn-status btn-owner">Owner</span>
-                            {% else %}
-                                <!-- Member State -->
-                                <form action="{% url 'leave_project' project.name project.id %}" method="post" class="d-inline-block">
-                                    {% csrf_token %}
-                                    <button 
-                                        type="submit" 
-                                        class="btn btn-sm btn-status btn-success" 
-                                        data-default-text="Project Member" 
-                                        data-leave-text="Leave Project">
-                                        Project Member
+                        {% if user.is_authenticated and not is_pma_admin %}
+                            {% if project_status|dict_key:project.id == 'member' %}
+                                {% if project.owner == request.user %}
+                                    <!-- Owner State -->
+                                    <span class="btn-status btn-owner">Owner</span>
+                                {% else %}
+                                    <!-- Member State -->
+                                    <form action="{% url 'leave_project' project.name project.id %}" method="post" class="d-inline-block">
+                                        {% csrf_token %}
+                                        <button 
+                                            type="submit" 
+                                            class="btn btn-sm btn-status btn-success" 
+                                            data-default-text="Project Member" 
+                                            data-leave-text="Leave Project">
+                                            Project Member
+                                    </button>
+                                    </form>
+                                {% endif %}
+                            {% elif project_status|dict_key:project.id == 'pending' %}
+                                <!-- Pending Request State -->
+                                <button class="btn btn-sm btn-status btn-warning" disabled>
+                                    Request Pending
                                 </button>
-                                </form>
-                            {% endif %}
-                        {% elif project_status|dict_key:project.id == 'pending' %}
-                            <!-- Pending Request State -->
-                            <button class="btn btn-sm btn-status btn-warning" disabled>
-                                Request Pending
-                            </button>
-                        {% else %}
-                            <!-- Not a Member State -->
-                            {% if project.current_reviewers_count < project.number_of_reviewers %}
-                                <form action="{% url 'request_to_join' project.id %}" method="post">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-status btn-primary">Request to Join</button>
-                                </form>
                             {% else %}
-                                <span class="btn-status bg-danger">Project Full</span>
+                                <!-- Not a Member State -->
+                                {% if project.current_reviewers_count < project.number_of_reviewers %}
+                                    <form action="{% url 'request_to_join' project.id %}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-status btn-primary">Request to Join</button>
+                                    </form>
+                                {% else %}
+                                    <span class="btn-status bg-danger">Project Full</span>
+                                {% endif %}
                             {% endif %}
+                        {% endif %}
+                        {% if is_pma_admin %}
+                                    <form action="{% url 'delete_project' project.name project.id %}" method="post" class="d-inline-block">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-status bg-danger">Delete</button>
+                                    </form>
                         {% endif %}
                     </div>
                 </li>

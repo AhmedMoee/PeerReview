@@ -35,15 +35,20 @@
                     {% if not user|is_admin %}
                         <h3>Projects Involved</h3>
                         <ul>
-                            {% for project in projects %}
+                            {% for item in projects %}
                                 <li>
-                                    <a href="{% url 'project_main_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
+                                    <a href="{% url 'project_main_view' item.project.name item.project.id %}" class="text-decoration-none">
+                                        {{ item.project.name }}
+                                    </a>
+                                    {% if item.date_added %}
+                                        <p>Joined on: {{ item.date_added|date:"M d, Y" }}</p>
+                                    {% endif %}
                                 </li>
                             {% empty %}
                                 {% if user == request.user %}
                                     <li><em>You are not part of any projects yet.</em></li>
                                 {% else %}
-                                    <li><em>{{ user.get_full_name }} is not a part of any projects yet.</em></li>
+                                    <li><em>This user is not part of any projects yet.</em></li>
                                 {% endif %}
                             {% endfor %}
                         </ul>

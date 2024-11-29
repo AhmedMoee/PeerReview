@@ -24,7 +24,7 @@ load_dotenv()
 SECRET_KEY = 'django-insecure-+!r0i(emln-g5)ous&knffqw2l@b@x26dowy^y50#mm*swjp1)'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'uva-cs-3240-project-b-10-7d152fd5a130.herokuapp.com']
 
@@ -49,21 +49,21 @@ INSTALLED_APPS = [
     'storages'
 ]
 
-SOCIALACCOUNT_PROVIDERS = {
+# SOCIALACCOUNT_PROVIDERS = {
 
-    "google": {
-         'APP': {
-            'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
-            'secret': os.getenv('GOOGLE_SECRET'),  # Replace with your actual Client Secret
-            'key': ''
-        },
-        "SCOPE": [
-            'profile',
-            'email'
-        ],
-        'AUTH_PARAMS': {'access_type': 'online'}
-    }
-}
+#     "google": {
+#          'APP': {
+#             'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
+#             'secret': os.getenv('GOOGLE_SECRET'),  # Replace with your actual Client Secret
+#             'key': ''
+#         },
+#         "SCOPE": [
+#             'profile',
+#             'email'
+#         ],
+#         'AUTH_PARAMS': {'access_type': 'online'}
+#     }
+# }
 
 # SOCIALACCOUNT_PROVIDERS = {
 #

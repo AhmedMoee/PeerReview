@@ -5,7 +5,7 @@
     <h1 class="mb-4">All Projects</h1>
 
     <!-- Search Form -->
-    <form method="get" action="{% url 'project_list' %}" class="mb-4">
+    <form method="get" action="{{ request.path }}" class="mb-4">
         <div class="input-group">
             <input 
                 type="text" 

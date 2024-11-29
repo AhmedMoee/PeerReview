@@ -4,13 +4,14 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, F
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse, HttpResponseBadRequest
-from .models import Upload, JoinRequest, Project, Message, User, UserProfile
+from .models import Upload, JoinRequest, Project, Message, User, UserProfile, ProjectMembership
 from .forms import FileUploadForm, ProjectForm, UserProfileForm, UploadMetaDataForm, UserEditForm
 from typing import AsyncGenerator
 import asyncio
 import json
 import random
 from datetime import datetime
+from django.utils.timezone import now
 import time
 import uuid
 from django.http import JsonResponse, HttpResponseRedirect
@@ -209,6 +210,11 @@ def approve_join_request(request, request_id):
     join_request.save()
 
     join_request.project.members.add(join_request.user)
+    ProjectMembership.objects.create(
+        user=join_request.user,
+        project=join_request.project,
+        date_added=now()
+    )
     
     # Check for existing invitations and resolve them
     ProjectInvitation.objects.filter(
@@ -679,8 +685,22 @@ def view_profile(request, user_id):
     profile = get_object_or_404(UserProfile, user=user)
     projects = Project.objects.filter(Q(owner=user) | Q(members=user)).distinct()
 
-    return render(request, 'view_profile.html', {'user': user, 'profile': profile, 'projects': projects,
-                                                'referer': referer})
+    # Prepare project data with membership details
+    project_data = []
+    for project in projects:
+        membership = ProjectMembership.objects.filter(project=project, user=user).first()
+        project_data.append({
+            'project': project,
+            'date_added': membership.date_added if membership else None,
+        })
+
+    print(f'project_data: {project_data}')
+
+    return render(
+        request,
+        'view_profile.html',
+        {'user': user, 'profile': profile, 'projects': project_data, 'referer': referer}
+    )
 
 @login_required
 def edit_profile(request):

@@ -791,7 +791,8 @@ def refresh_transcription_status(request, job_name, file_id):
     return JsonResponse(response)
 
 @login_required
-def show_all_users(request):
+def search_users(request):
+    search_query = request.GET.get('q', '').strip()  # Get the search query
     # Get all users except the logged-in user and django admin users
     users = User.objects.exclude(id=request.user.id)
 
@@ -799,7 +800,20 @@ def show_all_users(request):
     users = users.exclude(is_staff=True)  # exclude staff status accounts
     users = users.exclude(is_superuser=True)  # exclude superuser status accounts
 
-    return render(request, 'search_users.html', {'users': users})
+    if search_query:
+        # Filter users by username, full name, or bio
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(profile__bio__icontains=search_query)
+        )
+
+    context = {
+        'users': users,
+        'search_query': search_query,
+    }
+    return render(request, 'search_users.html', context)
 
 from .models import ProjectInvitation
 @login_required

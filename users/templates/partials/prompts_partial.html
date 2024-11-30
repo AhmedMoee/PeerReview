@@ -16,6 +16,9 @@
                         <div class="card-header">
                             <strong>{{ prompt.content }}</strong>
                             <small class="text-muted float-end">{{ prompt.created_at|date:"F j, Y, g:i a" }}</small>
+                            <div>
+                                <small class="text-muted float-start mt-1">{{ prompt.created_by.get_full_name|default:prompt.created_by.username }}</small>
+                            </div>
                         </div>
                         <div class="card-body">
                             <h6 class="text-muted mb-3">Replies:</h6>

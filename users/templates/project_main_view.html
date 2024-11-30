@@ -21,16 +21,38 @@
                         <h2 class="h4 mb-0">Project Resources</h2>
                     </div>
                     <div class="card-body">
-                        {% if project.rubric %}
-                            <p><strong>Rubric:</strong> <a href="{{ project.rubric.url }}" target="_blank">Download Rubric</a></p>
-                        {% else %}
-                            <p><strong>Rubric:</strong> Not uploaded yet.</p>
-                        {% endif %}
-                        {% if project.review_guidelines %}
-                            <p><strong>Review Guidelines:</strong> <a href="{{ project.review_guidelines.url }}" target="_blank">Download Guidelines</a></p>
-                        {% else %}
-                            <p><strong>Review Guidelines:</strong> Not uploaded yet.</p>
-                        {% endif %}
+                        <ul class="list-group">
+                            <!-- Rubric -->
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {% if project.rubric %}
+                                    <p class="mb-0"><strong>Rubric:</strong> <a href="{{ project.rubric.url }}" target="_blank">Download Rubric</a></p>
+                                        <!-- Delete Button for Admin or Owner -->
+                                        {% if is_owner_or_admin %}
+                                            <form action="{% url 'delete_project_resources' project.name project.id 'rubric' %}" method="post" class="d-inline-block">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                            </form>
+                                        {% endif %}
+                                {% else %}
+                                    <p class="mb-0"><strong>Rubric:</strong> Not uploaded yet.</p>
+                                {% endif %}
+                            </li>
+                            <!-- Guidelines -->
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {% if project.review_guidelines %}
+                                    <p class="mb-0"><strong>Review Guidelines:</strong> <a href="{{ project.review_guidelines.url }}" target="_blank">Download Guidelines</a></p>
+                                        <!-- Delete Button for Admin or Owner -->
+                                        {% if is_owner_or_admin %}
+                                            <form action="{% url 'delete_project_resources' project.name project.id 'review_guidelines' %}" method="post" class="d-inline-block">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                            </form>
+                                        {% endif %}
+                                {% else %}
+                                    <p class="mb-0"><strong>Review Guidelines:</strong> Not uploaded yet.</p>
+                                {% endif %}
+                            </li>
+                        </ul>
                     </div>
                 </div>
 

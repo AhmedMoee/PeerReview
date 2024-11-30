@@ -1014,6 +1014,41 @@ def upload_project_files(request, project_name, id):
     return redirect('project_main_view', project_name=project.name, id=project.id)
 
 @login_required
+def delete_project_resources(request, project_name, id, resource_type):
+    project = get_object_or_404(Project, id=id, name=project_name)
+
+    # Check if the user has permissions to delete the file
+    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists() or file_obj_owner:
+        s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+        bucket_name = AWS_STORAGE_BUCKET_NAME
+
+        # Determine the resource type (rubric or review_guidelines)
+        if resource_type == 'rubric':
+            file_field = project.rubric
+            project.rubric = None
+        elif resource_type == 'review_guidelines':
+            file_field = project.review_guidelines
+            project.review_guidelines = None
+        else:
+            messages.error(request, "Invalid resource type.")
+            return redirect('project_main_view', project_name=project.name, id=project.id)
+
+        # Delete the file from S3
+        if file_field:
+            try:
+                s3.delete_object(Bucket=bucket_name, Key=str(file_field))
+                print(f"Deleted {file_field} from S3.")
+            except Exception as e:
+                print(f"Error deleting file from S3: {e}")
+                messages.error(request, "Error deleting the resource from S3.")
+                return redirect('project_main_view', project_name=project.name, id=project.id)
+
+        # Save project changes
+        project.save()
+        messages.success(request, "Resource deleted successfully.")
+        return redirect('project_main_view', project_name=project.name, id=project.id)
+
+@login_required
 def settings_display(request):
     return render(request, 'settings_display.html', {'user': request.user})
 

@@ -33,4 +33,5 @@ urlpatterns = [
     path('project/<int:project_id>/upvote/', views.upvote_project, name='upvote_project'),
     path('popular_projects/', views.popular_projects, name='popular_projects'),
     path('project/<str:project_name>/<int:id>/upload-files/', views.upload_project_files, name='upload_project_files'),
+    path('project/<str:project_name>/<int:id>/delete/<str:resource_type>/', views.delete_project_resources, name='delete_project_resources'),
 ]

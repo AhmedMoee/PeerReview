@@ -4,13 +4,14 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, F
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse, HttpResponseBadRequest
-from .models import Upload, JoinRequest, Project, Message, User, UserProfile
+from .models import Upload, JoinRequest, Project, Message, User, UserProfile, ProjectMembership
 from .forms import FileUploadForm, ProjectForm, UserProfileForm, UploadMetaDataForm, UserEditForm
 from typing import AsyncGenerator
 import asyncio
 import json
 import random
 from datetime import datetime
+from django.utils.timezone import now
 import time
 import uuid
 from django.http import JsonResponse, HttpResponseRedirect
@@ -209,6 +210,11 @@ def approve_join_request(request, request_id):
     join_request.save()
 
     join_request.project.members.add(join_request.user)
+    ProjectMembership.objects.create(
+        user=join_request.user,
+        project=join_request.project,
+        date_added=now()
+    )
     
     # Check for existing invitations and resolve them
     ProjectInvitation.objects.filter(
@@ -679,8 +685,22 @@ def view_profile(request, user_id):
     profile = get_object_or_404(UserProfile, user=user)
     projects = Project.objects.filter(Q(owner=user) | Q(members=user)).distinct()
 
-    return render(request, 'view_profile.html', {'user': user, 'profile': profile, 'projects': projects,
-                                                'referer': referer})
+    # Prepare project data with membership details
+    project_data = []
+    for project in projects:
+        membership = ProjectMembership.objects.filter(project=project, user=user).first()
+        project_data.append({
+            'project': project,
+            'date_added': membership.date_added if membership else None,
+        })
+
+    print(f'project_data: {project_data}')
+
+    return render(
+        request,
+        'view_profile.html',
+        {'user': user, 'profile': profile, 'projects': project_data, 'referer': referer}
+    )
 
 @login_required
 def edit_profile(request):
@@ -992,6 +1012,41 @@ def upload_project_files(request, project_name, id):
             messages.error(request, f'Error uploading files: {str(e)}')
 
     return redirect('project_main_view', project_name=project.name, id=project.id)
+
+@login_required
+def delete_project_resources(request, project_name, id, resource_type):
+    project = get_object_or_404(Project, id=id, name=project_name)
+
+    # Check if the user has permissions to delete the file
+    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists() or file_obj_owner:
+        s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+        bucket_name = AWS_STORAGE_BUCKET_NAME
+
+        # Determine the resource type (rubric or review_guidelines)
+        if resource_type == 'rubric':
+            file_field = project.rubric
+            project.rubric = None
+        elif resource_type == 'review_guidelines':
+            file_field = project.review_guidelines
+            project.review_guidelines = None
+        else:
+            messages.error(request, "Invalid resource type.")
+            return redirect('project_main_view', project_name=project.name, id=project.id)
+
+        # Delete the file from S3
+        if file_field:
+            try:
+                s3.delete_object(Bucket=bucket_name, Key=str(file_field))
+                print(f"Deleted {file_field} from S3.")
+            except Exception as e:
+                print(f"Error deleting file from S3: {e}")
+                messages.error(request, "Error deleting the resource from S3.")
+                return redirect('project_main_view', project_name=project.name, id=project.id)
+
+        # Save project changes
+        project.save()
+        messages.success(request, "Resource deleted successfully.")
+        return redirect('project_main_view', project_name=project.name, id=project.id)
 
 @login_required
 def settings_display(request):

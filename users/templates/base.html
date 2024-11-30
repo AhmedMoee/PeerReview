@@ -49,17 +49,24 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
                         </li>
+                        {% if request.user|is_admin %}
+                        <!-- do not show all projects & popular projects button -->
+                        {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'project_list' %}">Projects</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'popular_projects' %}">
+                                    Popular
+                                </a>
+                            </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'search_users' %}">Users</a>
                         </li>
                         {% if request.user|is_admin %}
                         <!-- do not show invites button -->
                         {% else %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'popular_projects' %}">
-                                    Popular
-                                </a>
-                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'view_invites' %}">
                                     Invites

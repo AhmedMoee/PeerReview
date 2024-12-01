@@ -269,6 +269,14 @@
         $('#refresh-button').on('click', function() {
             loadMessages();
         });
+        
+        // Handle message form submission with Enter key
+        $('#chat-message-input').on('keypress', function(event) {
+            if (event.which === 13 && !event.shiftKey) { // Check for Enter key (without Shift for newline)
+                event.preventDefault();
+                $('#message-form').submit();
+            }
+        });
 
         $('#message-form').on('submit', function(event) {
             event.preventDefault();

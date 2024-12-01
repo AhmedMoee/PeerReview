@@ -186,6 +186,13 @@
                             {% endfor %}
                         </ul>
                     </div>
+                    {% if project.current_reviewers_count < project.number_of_reviewers %}
+                        <div class="card-footer text-center">
+                            <a href="{% url 'search_users' %}?project_id={{ project.id }}" class="btn btn-outline-primary w-100">
+                                Invite Others
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             
                 <!-- Leave Project Button -->

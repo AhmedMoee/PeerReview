@@ -792,13 +792,26 @@ def refresh_transcription_status(request, job_name, file_id):
 
 @login_required
 def search_users(request):
-    search_query = request.GET.get('q', '').strip()  # Get the search query
+    # Get the search query and project_id from the request
+    search_query = request.GET.get('q', '').strip()
+    project_id = request.GET.get("project_id")
+
+    # Fetch the selected project if project_id is provided
+    selected_project = None
+    if project_id:
+        selected_project = get_object_or_404(Project, id=project_id)
+
+
     # Get all users except the logged-in user and django admin users
     users = User.objects.exclude(id=request.user.id)
 
     # remove django admin users
     users = users.exclude(is_staff=True)  # exclude staff status accounts
     users = users.exclude(is_superuser=True)  # exclude superuser status accounts
+
+    # Exclude users who are already members of the selected project
+    if selected_project:
+        users = users.exclude(id__in=selected_project.members.values_list('id', flat=True))
 
     if search_query:
         # Filter users by username, full name, or bio
@@ -812,6 +825,8 @@ def search_users(request):
     context = {
         'users': users,
         'search_query': search_query,
+        "project_id": project_id,
+        "selected_project": selected_project,
     }
     return render(request, 'search_users.html', context)
 

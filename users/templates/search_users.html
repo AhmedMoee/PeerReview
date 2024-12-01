@@ -25,10 +25,6 @@
                     <div class="card shadow-sm">
                         <div class="card-body">
                             <div class="text-center">
-                                <!-- profile picture placeholder (circle) -->
-                                <div class="rounded-circle" style="width: 100px; height: 100px; background-color: #dcdcdc; margin: 0 auto;">
-                                    <!-- profile picture here if we want to add that feature!-->
-                                </div>
                                 <h5 class="card-title mt-3">{{ user.get_full_name|default:user.username}}</h5>
 
                                 {% if user.profile.bio %}

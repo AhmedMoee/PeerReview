@@ -850,7 +850,8 @@ def refresh_transcription_status(request, job_name, file_id):
     return JsonResponse(response)
 
 @login_required
-def show_all_users(request):
+def search_users(request):
+    search_query = request.GET.get('q', '').strip()  # Get the search query
     # Get all users except the logged-in user and django admin users
     users = User.objects.exclude(id=request.user.id)
 
@@ -858,7 +859,20 @@ def show_all_users(request):
     users = users.exclude(is_staff=True)  # exclude staff status accounts
     users = users.exclude(is_superuser=True)  # exclude superuser status accounts
 
-    return render(request, 'search_users.html', {'users': users})
+    if search_query:
+        # Filter users by username, full name, or bio
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(profile__bio__icontains=search_query)
+        )
+
+    context = {
+        'users': users,
+        'search_query': search_query,
+    }
+    return render(request, 'search_users.html', context)
 
 from .models import ProjectInvitation
 @login_required
@@ -1071,6 +1085,41 @@ def upload_project_files(request, project_name, id):
             messages.error(request, f'Error uploading files: {str(e)}')
 
     return redirect('project_main_view', project_name=project.name, id=project.id)
+
+@login_required
+def delete_project_resources(request, project_name, id, resource_type):
+    project = get_object_or_404(Project, id=id, name=project_name)
+
+    # Check if the user has permissions to delete the file
+    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists() or file_obj_owner:
+        s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+        bucket_name = AWS_STORAGE_BUCKET_NAME
+
+        # Determine the resource type (rubric or review_guidelines)
+        if resource_type == 'rubric':
+            file_field = project.rubric
+            project.rubric = None
+        elif resource_type == 'review_guidelines':
+            file_field = project.review_guidelines
+            project.review_guidelines = None
+        else:
+            messages.error(request, "Invalid resource type.")
+            return redirect('project_main_view', project_name=project.name, id=project.id)
+
+        # Delete the file from S3
+        if file_field:
+            try:
+                s3.delete_object(Bucket=bucket_name, Key=str(file_field))
+                print(f"Deleted {file_field} from S3.")
+            except Exception as e:
+                print(f"Error deleting file from S3: {e}")
+                messages.error(request, "Error deleting the resource from S3.")
+                return redirect('project_main_view', project_name=project.name, id=project.id)
+
+        # Save project changes
+        project.save()
+        messages.success(request, "Resource deleted successfully.")
+        return redirect('project_main_view', project_name=project.name, id=project.id)
 
 @login_required
 def settings_display(request):

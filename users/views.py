@@ -162,73 +162,6 @@ def create_project(request):
     return render(request, 'create_project.html', {'form': form})
 
 
-
-# @login_required
-# def project_list(request):
-#     # Fetch projects with annotations
-#     projects = Project.objects.select_related('owner').annotate(
-#         user_has_upvoted=Exists(
-#             Project.upvoters.through.objects.filter(
-#                 user_id=request.user.id, project_id=OuterRef('id')
-#             )
-#         )
-#     )
-
-#     # Check if the user is a PMA admin
-#     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
-
-#     # Apply sorting based on query params
-#     sort_by = request.GET.get('sort', '-created_at')
-#     if sort_by == 'due_date':
-#         projects = projects.order_by(F('due_date').asc(nulls_last=True))
-#     elif sort_by == '-due_date':
-#         projects = projects.order_by(F('due_date').desc(nulls_last=True))
-#     elif sort_by == 'created_at':
-#         projects = projects.order_by('created_at')
-#     elif sort_by == '-created_at':
-#         projects = projects.order_by('-created_at')
-
-#     # Apply search filter
-#     search_query = request.GET.get('q', '')
-#     if search_query:
-#         projects = projects.filter(
-#             Q(description__icontains=search_query) |
-#             Q(category__icontains=search_query)
-#         )
-
-#     # Filter visible projects
-#     visible_projects = [
-#         project for project in projects
-#         if not project.is_private or project.owner == request.user
-#         or request.user in project.members.all() or is_pma_admin
-#     ]
-
-#     # Determine project status for the current user
-#     if request.user.is_authenticated and not is_pma_admin:
-#         project_status = {
-#             project.id: 'member' if request.user in project.members.all() else
-#             'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
-#             'not_member'
-#             for project in visible_projects
-#         }
-#     else:
-#         project_status = {}
-
-#     # Determine project permissions for the current user
-#     project_permissions = {
-#         project.id: project.owner == request.user or is_pma_admin
-#         for project in visible_projects
-#     }
-
-#     # Render the response
-#     return render(request, 'project_list.html', {
-#         'projects': visible_projects,
-#         'sort_by': sort_by,
-#         'project_status': project_status,
-#         'is_pma_admin': is_pma_admin,
-#         'project_permissions': project_permissions
-#     })
-
 @login_required
 def request_to_join(request, project_id):
     project = get_object_or_404(Project, id=project_id)
@@ -499,17 +432,6 @@ def delete_file(request, project_name, id, file_id):
 
     return redirect('project_main_view', project_name=project_name, id=id)
 
-# @login_required
-# def create_message(request, project_id, user_id):
-#     if request.method == 'POST':
-#         content = request.POST.get('content')
-#         if content:
-#             user = get_object_or_404(User, id=user_id)
-#             project = get_object_or_404(Project, id=project_id)
-#             Message.objects.create(content=content, project=project, user=user)
-#             return JsonResponse({'status': 'Message sent'})
-#     return JsonResponse({'error': 'Invalid request'}, status=400)
-
 @login_required
 def create_message(request, project_id):
     if request.method == 'POST':
@@ -536,53 +458,6 @@ def load_messages(request, project_id):
     messages = Message.objects.filter(project_id=project_id).order_by('created_at')
     messages_list = [{'content': message.content, 'username':message.user.username} for message in messages]
     return JsonResponse({'messages': messages_list})
-
-# def create_message(request, id) -> HttpResponse:
-#     content = request.POST.get("content")
-#     user = get_object_or_404(User, request.POST.get("user_id"))
-#     project_id = id
-#     project = get_object_or_404(Project, id=project_id)
-
-#     if content:
-#         Message.objects.create(user=user, content=content, project=project)
-#         return HttpResponse(status=201)
-#     else:
-#         return HttpResponse(status=200)
-
-# async def stream_messages(request: HttpRequest, id) -> StreamingHttpResponse:
-#     project_id = id
-#     async def event_stream():
-#         """
-#         We use this function to send a continuous stream of data
-#         to the connected clients.
-#         """
-#         async for message in get_existing_messages():
-#             yield message
-
-#         last_id = await get_last_message_id()
-
-#         # Continuously check for new messages
-#         while True:
-#             new_messages = Message.objects.filter(id__gt=last_id, project__id = id).order_by('created_at').values(
-#                 'id', 'user', 'content'
-#             )
-#             async for message in new_messages:
-#                 yield f"data: {json.dumps(message)}\n\n"
-#                 last_id = message['id']
-#             await asyncio.sleep(0.1)  # Adjust sleep time as needed to reduce db queries.
-
-#     async def get_existing_messages() -> AsyncGenerator:
-#         messages = Message.objects.filter(project__id=project_id).order_by('created_at').values(
-#             'id', 'user', 'content'
-#         )
-#         async for message in messages:
-#             yield f"data: {json.dumps(message)}\n\n"
-
-#     async def get_last_message_id() -> int:
-#         last_message = await Message.objects.filter(project__id=project_id).alast()
-#         return last_message.id if last_message else 0
-
-#     return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
 
 import mimetypes  # https://docs.python.org/3/library/mimetypes.html
 from .forms import PromptForm, PromptResponseForm
@@ -1139,21 +1014,3 @@ def settings_edit(request):
         form = UserEditForm(instance=request.user)
 
     return render(request, 'settings_edit.html', {'form': form})
-
-
-# @login_required
-# def settings(request):
-#     if request.method == 'POST':
-#         form = UserEditForm(request.POST, instance=request.user)
-#         if form.is_valid():
-#             form.save()
-#             messages.success(request, 'Your account settings have been updated.')
-#             return redirect('settings')  # Redirect only on success
-#         else:
-#             messages.error(request, 'Please correct the errors below.')
-#             # Render the page with the form errors and show the edit view
-#             return render(request, 'settings.html', {'form': form, 'user': request.user, 'show_edit': True})
-#     else:
-#         form = UserEditForm(instance=request.user)
-
-#     return render(request, 'settings.html', {'form': form, 'user': request.user, 'show_edit': False})

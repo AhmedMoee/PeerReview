@@ -4,17 +4,19 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, F
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse, HttpResponseBadRequest
-from .models import Upload, JoinRequest, Project, Message, User, UserProfile
-from .forms import FileUploadForm, ProjectForm, UserProfileForm, UploadMetaDataForm
+from .models import Upload, JoinRequest, Project, Message, User, UserProfile, ProjectMembership
+from .forms import FileUploadForm, ProjectForm, UserProfileForm, UploadMetaDataForm, UserEditForm
 from typing import AsyncGenerator
 import asyncio
 import json
 import random
 from datetime import datetime
+from django.utils.timezone import now
 import time
 import uuid
 from django.http import JsonResponse, HttpResponseRedirect
 from urllib.parse import urlparse
+from django.db.models import Exists, OuterRef
 
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
@@ -56,30 +58,71 @@ def common_dashboard(request, user_name):
     
 #display project list helper method    
 def get_projects_context(request):
-    projects = Project.objects.all()
-    is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
+    # Fetch projects with annotations
+    projects = Project.objects.select_related('owner').annotate(
+        user_has_upvoted=Exists(
+            Project.upvoters.through.objects.filter(
+                user_id=request.user.id, project_id=OuterRef('id')
+            )
+        )
+    )
+
+    # Check if the user is a PMA admin
+    is_pma_admin = False
+    is_authenticated = request.user.is_authenticated
+    is_pma_admin = is_authenticated and request.user.groups.filter(name='PMA Administrators').exists()
+
+
+    # Apply sorting based on query params
     sort_by = request.GET.get('sort', '-created_at')
-    
     if sort_by == 'due_date':
         projects = projects.order_by(F('due_date').asc(nulls_last=True))
     elif sort_by == '-due_date':
-        projects = projects.order_by('-due_date')
+        projects = projects.order_by(F('due_date').desc(nulls_last=True))
     elif sort_by == 'created_at':
         projects = projects.order_by('created_at')
     elif sort_by == '-created_at':
         projects = projects.order_by('-created_at')
 
+    # Apply search filter
     search_query = request.GET.get('q', '')
     if search_query:
         projects = projects.filter(
+            Q(name__icontains=search_query) |
             Q(description__icontains=search_query) |
             Q(category__icontains=search_query)
         )
 
+    # Filter visible projects
+    visible_projects = [
+        project for project in projects
+        if not project.is_private or project.owner == request.user
+        or request.user in project.members.all() or is_pma_admin
+    ]
+
+    project_status = None
+    # Determine project status for the current user
+    if is_authenticated and not is_pma_admin:
+        project_status = {
+            project.id: 'member' if request.user in project.members.all() else
+            'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
+            'not_member'
+            for project in visible_projects
+        }
+    
+    # Determine project permissions for the current user
+    project_permissions = {
+        project.id: project.owner == request.user or is_pma_admin
+        for project in visible_projects
+    }
+
+    # Render the response
     return {
-        'projects': projects,
+        'projects': visible_projects,
         'sort_by': sort_by,
-        'is_pma_admin': is_pma_admin
+        'project_status': project_status,
+        'is_pma_admin': is_pma_admin,
+        'project_permissions': project_permissions
     }
 
 @login_required
@@ -93,8 +136,9 @@ def anonymous_dashboard(request):
     return render(request, 'anonymous_dashboard.html', context)
 
 @login_required
-def settings(request):
-    return render(request, 'settings.html')
+def project_list(request):
+    context = get_projects_context(request)
+    return render(request, 'project_list.html', context)
 
 @login_required
 def create_project(request):
@@ -103,7 +147,13 @@ def create_project(request):
         if form.is_valid():
             project = form.save(commit=False)
             project.owner = request.user
-            project.save()
+
+            if '/' in project.name:
+                safe_project_name = project.name.replace('/', '-')
+                project.name = safe_project_name
+                
+            project.save()  
+            
             project.members.add(request.user)
             return redirect('project_list')
     else:
@@ -111,61 +161,73 @@ def create_project(request):
 
     return render(request, 'create_project.html', {'form': form})
 
-from django.db.models import Exists, OuterRef
 
-def project_list(request):
-    projects = Project.objects.annotate(
-        user_has_upvoted=Exists(
-            Project.upvoters.through.objects.filter(
-                user_id=request.user.id, project_id=OuterRef('id')
-            )
-        )
-    )
 
-    is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
-    sort_by = request.GET.get('sort', '-created_at')
+# @login_required
+# def project_list(request):
+#     # Fetch projects with annotations
+#     projects = Project.objects.select_related('owner').annotate(
+#         user_has_upvoted=Exists(
+#             Project.upvoters.through.objects.filter(
+#                 user_id=request.user.id, project_id=OuterRef('id')
+#             )
+#         )
+#     )
 
-    if sort_by == 'due_date':
-        projects = projects.order_by(F('due_date').asc(nulls_last=True))
-    elif sort_by == '-due_date':
-        projects = projects.order_by('-due_date')
-    elif sort_by == 'created_at':
-        projects = projects.order_by('created_at')
-    elif sort_by == '-created_at':
-        projects = projects.order_by('-created_at')
+#     # Check if the user is a PMA admin
+#     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
 
-    search_query = request.GET.get('q', '')
-    if search_query:
-        projects = projects.filter(
-            Q(description__icontains=search_query) |
-            Q(category__icontains=search_query)
-        )
+#     # Apply sorting based on query params
+#     sort_by = request.GET.get('sort', '-created_at')
+#     if sort_by == 'due_date':
+#         projects = projects.order_by(F('due_date').asc(nulls_last=True))
+#     elif sort_by == '-due_date':
+#         projects = projects.order_by(F('due_date').desc(nulls_last=True))
+#     elif sort_by == 'created_at':
+#         projects = projects.order_by('created_at')
+#     elif sort_by == '-created_at':
+#         projects = projects.order_by('-created_at')
 
-    visible_projects = [
-        project for project in projects
-        if not project.is_private or project.owner == request.user
-        or request.user in project.members.all() or is_pma_admin
-    ]
+#     # Apply search filter
+#     search_query = request.GET.get('q', '')
+#     if search_query:
+#         projects = projects.filter(
+#             Q(description__icontains=search_query) |
+#             Q(category__icontains=search_query)
+#         )
 
-    project_status = {
-        project.id: 'member' if request.user in project.members.all() else
-        'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
-        'not_member'
-        for project in visible_projects if request.user.is_authenticated and not is_pma_admin
-    }
+#     # Filter visible projects
+#     visible_projects = [
+#         project for project in projects
+#         if not project.is_private or project.owner == request.user
+#         or request.user in project.members.all() or is_pma_admin
+#     ]
 
-    project_permissions = {
-        project.id: project.owner == request.user or is_pma_admin
-        for project in visible_projects
-    }
+#     # Determine project status for the current user
+#     if request.user.is_authenticated and not is_pma_admin:
+#         project_status = {
+#             project.id: 'member' if request.user in project.members.all() else
+#             'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
+#             'not_member'
+#             for project in visible_projects
+#         }
+#     else:
+#         project_status = {}
 
-    return render(request, 'project_list.html', {
-        'projects': visible_projects,
-        'sort_by': sort_by,
-        'project_status': project_status,
-        'is_pma_admin': is_pma_admin,
-        'project_permissions': project_permissions
-    })
+#     # Determine project permissions for the current user
+#     project_permissions = {
+#         project.id: project.owner == request.user or is_pma_admin
+#         for project in visible_projects
+#     }
+
+#     # Render the response
+#     return render(request, 'project_list.html', {
+#         'projects': visible_projects,
+#         'sort_by': sort_by,
+#         'project_status': project_status,
+#         'is_pma_admin': is_pma_admin,
+#         'project_permissions': project_permissions
+#     })
 
 @login_required
 def request_to_join(request, project_id):
@@ -207,6 +269,19 @@ def approve_join_request(request, request_id):
     join_request.save()
 
     join_request.project.members.add(join_request.user)
+    ProjectMembership.objects.create(
+        user=join_request.user,
+        project=join_request.project,
+        date_added=now()
+    )
+    
+    # Check for existing invitations and resolve them
+    ProjectInvitation.objects.filter(
+        project=join_request.project,
+        invited_user=join_request.user,
+        status='PENDING'
+    ).update(status='ACCEPTED')
+    
     return redirect('manage_join_requests', project_id=join_request.project.id)
 
 @login_required
@@ -268,7 +343,6 @@ def view_project(request, project_name, id):
         uploads = uploads.filter(Q(name__icontains=search_query) | Q(keywords__icontains=search_query))
 
     is_owner_or_admin = (project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists())
-
     context = {
         'project': project,
         'files': uploads,
@@ -316,6 +390,7 @@ def project_upload(request, project_name, id):
 
                 # Save metadata to the database
                 new_upload = form.save(commit=False)
+                new_upload.owner = request.user
                 new_upload.project = project
                 new_upload.file = uploaded_file.name
                 new_upload.save()
@@ -397,9 +472,10 @@ def delete_project(request, project_name, id):
 def delete_file(request, project_name, id, file_id):
     project = get_object_or_404(Project, id=id, name=project_name)
     file_obj = get_object_or_404(Upload, id=file_id, project=project)
+    file_obj_owner = request.user == file_obj.owner
 
     # Check if the user has permissions to delete the file
-    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists():
+    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists() or file_obj_owner:
         s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
         bucket_name = AWS_STORAGE_BUCKET_NAME
 
@@ -647,6 +723,7 @@ def view_file(request, project_name, id, file_id):
             'prompts': prompts,
             'transcription_text': transcription_text,
             'job_name': job_name,
+            'upload_owner': upload.owner,
         }
 
         return render(request, 'view_file.html', context)
@@ -667,8 +744,22 @@ def view_profile(request, user_id):
     profile = get_object_or_404(UserProfile, user=user)
     projects = Project.objects.filter(Q(owner=user) | Q(members=user)).distinct()
 
-    return render(request, 'view_profile.html', {'user': user, 'profile': profile, 'projects': projects,
-                                                'referer': referer})
+    # Prepare project data with membership details
+    project_data = []
+    for project in projects:
+        membership = ProjectMembership.objects.filter(project=project, user=user).first()
+        project_data.append({
+            'project': project,
+            'date_added': membership.date_added if membership else None,
+        })
+
+    print(f'project_data: {project_data}')
+
+    return render(
+        request,
+        'view_profile.html',
+        {'user': user, 'profile': profile, 'projects': project_data, 'referer': referer}
+    )
 
 @login_required
 def edit_profile(request):
@@ -759,10 +850,29 @@ def refresh_transcription_status(request, job_name, file_id):
     return JsonResponse(response)
 
 @login_required
-def show_all_users(request):
-    # Get all users except the logged-in user
+def search_users(request):
+    search_query = request.GET.get('q', '').strip()  # Get the search query
+    # Get all users except the logged-in user and django admin users
     users = User.objects.exclude(id=request.user.id)
-    return render(request, 'search_users.html', {'users': users})
+
+    # remove django admin users
+    users = users.exclude(is_staff=True)  # exclude staff status accounts
+    users = users.exclude(is_superuser=True)  # exclude superuser status accounts
+
+    if search_query:
+        # Filter users by username, full name, or bio
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(profile__bio__icontains=search_query)
+        )
+
+    context = {
+        'users': users,
+        'search_query': search_query,
+    }
+    return render(request, 'search_users.html', context)
 
 from .models import ProjectInvitation
 @login_required
@@ -821,22 +931,33 @@ def handle_invitation(request, invitation_id):
 
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+
         if action == 'accept':
+            # Add user to project members
             invitation.project.members.add(request.user)
-            # ProjectMembership.objects.create(
-            #     user=request.user,
-            #     project=invitation.project,
-            #     role='MEMBER'
-            # )
+
+            # Accept the invitation
             invitation.status = 'ACCEPTED'
+            invitation.response_date = datetime.now()
+            invitation.save()
+
+            # Check for existing join requests and resolve them
+            JoinRequest.objects.filter(
+                project=invitation.project,
+                user=request.user,
+                status='pending'
+            ).update(status='accepted')
+
             messages.success(request, f'You have joined {invitation.project.name}.')
         elif action == 'decline':
             invitation.status = 'DECLINED'
+            invitation.response_date = datetime.now()
+            invitation.save()
+
             messages.info(request, f'You have declined the invitation to {invitation.project.name}.')
-        
-        invitation.response_date = datetime.now()
-        invitation.save()
+
+        # delete the invite so users can be invited to join a project again
+        invitation.delete()
 
     return redirect('view_invites')
 
@@ -964,3 +1085,75 @@ def upload_project_files(request, project_name, id):
             messages.error(request, f'Error uploading files: {str(e)}')
 
     return redirect('project_main_view', project_name=project.name, id=project.id)
+
+@login_required
+def delete_project_resources(request, project_name, id, resource_type):
+    project = get_object_or_404(Project, id=id, name=project_name)
+
+    # Check if the user has permissions to delete the file
+    if project.owner == request.user or request.user.groups.filter(name='PMA Administrators').exists() or file_obj_owner:
+        s3 = boto3.client('s3', region_name=AWS_S3_REGION_NAME)
+        bucket_name = AWS_STORAGE_BUCKET_NAME
+
+        # Determine the resource type (rubric or review_guidelines)
+        if resource_type == 'rubric':
+            file_field = project.rubric
+            project.rubric = None
+        elif resource_type == 'review_guidelines':
+            file_field = project.review_guidelines
+            project.review_guidelines = None
+        else:
+            messages.error(request, "Invalid resource type.")
+            return redirect('project_main_view', project_name=project.name, id=project.id)
+
+        # Delete the file from S3
+        if file_field:
+            try:
+                s3.delete_object(Bucket=bucket_name, Key=str(file_field))
+                print(f"Deleted {file_field} from S3.")
+            except Exception as e:
+                print(f"Error deleting file from S3: {e}")
+                messages.error(request, "Error deleting the resource from S3.")
+                return redirect('project_main_view', project_name=project.name, id=project.id)
+
+        # Save project changes
+        project.save()
+        messages.success(request, "Resource deleted successfully.")
+        return redirect('project_main_view', project_name=project.name, id=project.id)
+
+@login_required
+def settings_display(request):
+    return render(request, 'settings_display.html', {'user': request.user})
+
+@login_required
+def settings_edit(request):
+    if request.method == 'POST':
+        form = UserEditForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your account settings have been updated.')
+            return redirect('settings')  # Redirect to display page
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = UserEditForm(instance=request.user)
+
+    return render(request, 'settings_edit.html', {'form': form})
+
+
+# @login_required
+# def settings(request):
+#     if request.method == 'POST':
+#         form = UserEditForm(request.POST, instance=request.user)
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, 'Your account settings have been updated.')
+#             return redirect('settings')  # Redirect only on success
+#         else:
+#             messages.error(request, 'Please correct the errors below.')
+#             # Render the page with the form errors and show the edit view
+#             return render(request, 'settings.html', {'form': form, 'user': request.user, 'show_edit': True})
+#     else:
+#         form = UserEditForm(instance=request.user)
+
+#     return render(request, 'settings.html', {'form': form, 'user': request.user, 'show_edit': False})

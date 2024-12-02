@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 600px;">
+    <h1 class="text-center mb-4">Account Settings</h1>
+    <div class="card shadow-sm p-4">
+        <h4 class="mb-3">Your Information</h4>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>First Name:</strong> {{ user.first_name }}</p>
+        <p><strong>Last Name:</strong> {{ user.last_name }}</p>
+        <a href="{% url 'settings_edit' %}" class="btn btn-primary btn-sm mt-3">Edit</a>
+    </div>
+</div>
+{% endblock %}

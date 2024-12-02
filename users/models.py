@@ -50,6 +50,7 @@ class Project(models.Model):
 
 class Upload(models.Model):
     name = models.CharField(max_length=100)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_files', null=False)
     file = models.FileField(upload_to='uploads/')
     uploaded_at = models.DateTimeField(default=now)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='uploads')
@@ -125,3 +126,14 @@ class ProjectInvitation(models.Model):
 
     class Meta:
         unique_together = ['project', 'invited_user']
+
+class ProjectMembership(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'project')
+
+    def __str__(self):
+        return f"{self.user.username} in {self.project.name} since {self.date_added}"

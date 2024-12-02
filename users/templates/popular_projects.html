@@ -84,6 +84,8 @@
 <!--                                <span class="badge bg-warning">Request Pending</span>-->
 <!--                            {% elif project_status|dict_key:project.id == 'member' }-->
 <!--                                <span class="badge bg-success">Member</span>-->
+                            {% elif project.current_reviewers_count == project.number_of_reviewers %}
+                                <span class="badge bg-danger">Max Reviewers Reached</span>
                             {% else %}
                                 <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
                                     {% csrf_token %}

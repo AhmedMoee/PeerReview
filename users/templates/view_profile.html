@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 
 {% block content %}
 <div class="container mt-5">
@@ -11,12 +12,6 @@
             </div>
             <div class="card mb-4">
                 <div class="card-body">
-                    <!-- profile picture placeholder (circle) -->
-                    <div class="text-center mb-4">
-                        <div class="rounded-circle" style="width: 120px; height: 120px; background-color: #dcdcdc; margin: 0 auto;">
-                            <!-- profile picture here if we want to add that feature!-->
-                        </div>
-                    </div>
                     <h3>About Me</h3>
                     {% if profile.bio %}
                         <p>{{ profile.bio }}</p>
@@ -31,16 +26,27 @@
                         <p><em>No specializations added yet.</em></p>
                     {% endif %}
 
-                    <h3>Projects Involved</h3>
-                    <ul>
-                        {% for project in projects %}
-                            <li>
-                                <a href="{% url 'project_main_view' project.name project.id %}" class="text-decoration-none">{{ project.name }}</a>
-                            </li>
-                        {% empty %}
-                            <li>You are not part of any projects yet.</li>
-                        {% endfor %}
-                    </ul>
+                    {% if not user|is_admin %}
+                        <h3>Projects Involved</h3>
+                        <ul>
+                            {% for item in projects %}
+                                <li>
+                                    <a href="{% url 'project_main_view' item.project.name item.project.id %}" class="text-decoration-none">
+                                        {{ item.project.name }}
+                                    </a>
+                                    {% if item.date_added %}
+                                        <p>Joined on: {{ item.date_added|date:"M d, Y" }}</p>
+                                    {% endif %}
+                                </li>
+                            {% empty %}
+                                {% if user == request.user %}
+                                    <li><em>You are not part of any projects yet.</em></li>
+                                {% else %}
+                                    <li><em>This user is not part of any projects yet.</em></li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
 
                     <h3>Social Links</h3>
                     <ul class="list-inline">

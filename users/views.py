@@ -866,6 +866,7 @@ def upvote_project(request, project_id):
         project.save()
         return JsonResponse({'status': 'added', 'upvotes': project.upvotes})
 
+@login_required
 def popular_projects(request):
     projects = Project.objects.annotate(
         user_has_upvoted=Exists(

@@ -122,7 +122,8 @@ def get_projects_context(request):
         'sort_by': sort_by,
         'project_status': project_status,
         'is_pma_admin': is_pma_admin,
-        'project_permissions': project_permissions
+        'project_permissions': project_permissions,
+        'search_query': search_query
     }
 
 @login_required

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
 <h2>Your Pending Invitations</h2>
@@ -20,9 +21,9 @@
         {% for invite in pending_invitations %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 <p class="mb-0">
-                    <a href="{% url 'view_profile' invite.invited_by.id %}" class="text-decoration-none text-dark"><strong>{{ invite.invited_by.username }}</strong></a>
+                    <a href="{% url 'view_profile' invite.invited_by.id %}" class="text-decoration-none" title="Click to view profile details"><strong>{{ invite.invited_by.username }}</strong></a>
                     has invited you to join
-                    <a href="{% url 'project_main_view' invite.project.name invite.project.id %}" class="text-decoration-none text-dark"><strong>{{ invite.project.name }}</strong>.</a>
+                    <a href="{% url 'project_main_view' invite.project.name invite.project.id %}" class="text-decoration-none" title="Click to view project details"><strong>{{ invite.project.name }}</strong>.</a>
                 </p>
 
                 <form method="post" action="{% url 'handle_invitation' invite.id %}" style="display:inline;">

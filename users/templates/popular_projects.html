@@ -7,96 +7,111 @@
     <h1 class="mb-4 text-center">Popular Projects</h1>
     <div class="row">
         {% for project in projects %}
-        <div class="col-5 mx-auto mb-3">
-            <div class="card shadow-sm">
-                <!-- Card Header -->
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">{{ project.name }}</h5>
-                    <button 
-                        class="btn btn-light btn-sm" 
-                        onclick="upvoteProject('{{ project.id }}')" 
-                        id="upvote-button-{{ project.id }}">
-                        <i class="fas fa-arrow-up {% if project.user_has_upvoted %}filled{% endif %}" 
-                        id="upvote-icon-{{ project.id }}"></i>
-                    </button>
-                    <span id="upvote-count-{{ project.id }}">{{ project.upvotes }}</span>
-                </div>
+            {% if not project.is_private %}
+                <div class="col-md-5 mx-auto mb-3">
+                    <div class="card shadow-sm">
+                        <!-- Card Header -->
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <!-- Project Title -->
+                            <h5 class="card-title mb-0">{{ project.name }}</h5>
 
-                <!-- Card Body -->
-                <div class="card-body">
+                            <!-- Upvote Button and Count -->
+                            <div class="d-flex align-items-center border border-light rounded p-0 bg-light">
+                                <button
+                                    class="btn btn-sm me-2"
+                                    onclick="upvoteProject('{{ project.id }}')"
+                                    id="upvote-button-{{ project.id }}">
+                                    <i class="fas fa-arrow-up {% if project.user_has_upvoted %}filled{% endif %}"
+                                    id="upvote-icon-{{ project.id }}"></i>
+                                </button>
+                                <span id="upvote-count-{{ project.id }}" class="me-3 text-dark">{{ project.upvotes }}</span>
+                            </div>
+                        </div>
 
-                    <!-- Flex container for the image and project details -->
-                    <div class="d-flex align-items-center justify-content-between">
-                        <!-- Image Section -->
-                        <div style="flex-shrink: 0;">
-                            {% if project.latest_upload %}
-                                {% with file_url=project.latest_upload.signed_url file_type=project.latest_upload.file_type upload_name=project.latest_upload.name %}
-                                    {% if "image/jpeg" in file_type or "image/png" in file_type %}
-                                        <img src="{{ file_url }}" alt="{{ upload_name }}" style="max-width: 150px; height: auto;">
-                                    {% elif "application/pdf" in file_type %}
-                                        <iframe src="{{ file_url }}" width="150px" height="150px"></iframe>
-                                    {% elif "text/plain" in file_type %}
-                                        <iframe src="{{ file_url }}" width="150px" height="150px"></iframe>
-                                    {% elif file_type|is_transcribable and "video/mp4" in file_type %}
-                                        <video style="max-width: 150px; height: auto;" controls>
-                                            <source src="{{ file_url }}" type="video/mp4">
-                                        </video>
+                        <!-- Card Body -->
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Left Column: Recent Files -->
+                                <div class="col-md-4 mb-3">
+                                    {% if project.latest_upload %}
+                                        {% with file_url=project.latest_upload.signed_url file_type=project.latest_upload.file_type upload_name=project.latest_upload.name %}
+                                            {% if "image/jpeg" in file_type or "image/png" in file_type %}
+                                                <img src="{{ file_url }}" alt="{{ upload_name }}" style="max-width: 100%; height: auto; pointer-events: none;">
+                                            {% elif "application/pdf" in file_type %}
+                                                <iframe src="{{ file_url }}" width="100%" height="150px" style="pointer-events: none;"></iframe>
+                                            {% elif "text/plain" in file_type %}
+                                                <iframe src="{{ file_url }}" width="100%" height="150px" style="pointer-events: none;"></iframe>
+                                            {% elif file_type|is_transcribable and "video/mp4" in file_type %}
+                                                <video style="max-width: 100%; height: auto; pointer-events: none;" controls>
+                                                    <source src="{{ file_url }}" type="video/mp4">
+                                                </video>
+                                            {% else %}
+                                                <p>File type detected: {{ file_type }}</p>
+                                                <p>This file type cannot be displayed directly. You can <a href="{{ project.latest_upload.signed_url }}" download>download it here</a>.</p>
+                                            {% endif %}
+                                        {% endwith %}
                                     {% else %}
-                                        <p>File type detected: {{ file_type }}</p>
-                                        <p>This file type cannot be displayed directly. You can <a href="{{ project.latest_upload.signed_url }}" download>download it here</a>.</p>
+                                        <p>No recent uploads available.</p>
                                     {% endif %}
-                                {% endwith %}
-                            {% else %}
-                                <p>No recent uploads available.</p>
-                            {% endif %}
+                                </div>
+
+                                <!-- Right Column: Project Owner, Reviewers, and Description -->
+                                <div class="col-md-8">
+
+                                    <div class="mb-3">
+                                        <!-- Project Owner and Reviewers -->
+                                        <div class="mb-0 flex-wrap d-flex justify-content-between align-items-start">
+                                            <div class="w-50">
+                                                <strong>Owner:</strong>
+                                                <a href="{% url 'view_profile' project.owner.id %}" class="text-decoration-none">{{ project.owner.get_full_name }}</a>
+                                            </div>
+                                            <div class="text-end">
+                                                <strong>Reviewers:</strong> {{ project.current_reviewers_count }} / {{ project.number_of_reviewers }}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Project Description -->
+                                    <div class="mb-3">
+                                        <div class="mb-0">
+                                            <h6 class="mt-0 mb-1 fw-bold">About:</h6>
+                                            {% if project.description %}
+                                                <p class="card-text">{{ project.description|truncatechars:200 }}</p>
+                                            {% else %}
+                                                <p class="text-muted"><em>No description available.</em></p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
 
-                        <!-- Project Description Section -->
-                        <div class="d-flex flex-column">
-                            <h6>About:</h6>
-                            {% if project.description %}
-                                <p class="card-text">{{ project.description|truncatechars:200 }}</p>
-                            {% else %}
-                                <p class="text-muted"><em>No description available.</em></p>
-                            {% endif %}
-                        </div>
-
-                        <!-- Project Details Section (flexed to the right) -->
-                        <div class="ms-3">
-                            <strong>Owner:</strong> <a href="{% url 'view_profile' project.owner.id %}">{{ project.owner.username }}</a>
-                            <p><strong>Reviewers:</strong> {{ project.current_reviewers_count }} / {{ project.number_of_reviewers }}</p>
+                        <!-- Card Footer -->
+                        <div class="card-footer d-flex justify-content-between align-items-center">
+                            <div>
+                                <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-outline-info btn-sm">View</a>
+                                {% if user.is_authenticated and not is_pma_admin %}
+                                    {% if project.owner.id == request.user.id %}
+                                        <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-primary btn-sm">Manage Requests</a>
+                                    {% elif project.pending_request %}
+                                        <span class="badge bg-warning">Request Pending</span>
+                                    {% elif request.user in project.members.all %}
+                                        <span class="badge bg-success">Member</span>
+                                    {% elif project.current_reviewers_count == project.number_of_reviewers %}
+                                        <span class="badge bg-danger">Project Full</span>
+                                    {% else %}
+                                        <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-primary btn-sm">Request to Join</button>
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Card Footer -->
-                <div class="card-footer d-flex justify-content-between align-items-center">
-                    <div>
-                        <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-outline-info btn-sm">View</a>
-                        {% if user.is_authenticated and not is_pma_admin %}
-                            {% if project.owner.id == request.user.id %}
-                                <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-primary btn-sm" >Manage Requests</a>
-                            {% elif project.pending_request %}
-                                <span class="badge bg-warning">Request Pending</span>
-                            {% elif request.user in project.members.all %}
-                                <span class="badge bg-success">Member</span>
-<!--                            {% elif project_status|dict_key:project.id == 'pending' }-->
-<!--                                <span class="badge bg-warning">Request Pending</span>-->
-<!--                            {% elif project_status|dict_key:project.id == 'member' }-->
-<!--                                <span class="badge bg-success">Member</span>-->
-                            {% elif project.current_reviewers_count == project.number_of_reviewers %}
-                                <span class="badge bg-danger">Max Reviewers Reached</span>
-                            {% else %}
-                                <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary btn-sm">Request to Join</button>
-                                </form>
-                            {% endif %}
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
+            {% endif %}
         {% endfor %}
     </div>
 </div>

@@ -72,6 +72,29 @@ class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
         fields = ['bio', 'specializations', 'linkedin', 'github', 'twitter']
+        widgets = {
+            'bio': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Write a short bio about yourself',
+                'rows': 3,
+            }),
+            'specializations': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter your specializations',
+            }),
+            'linkedin': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter your LinkedIn profile URL',
+            }),
+            'github': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter your GitHub profile URL',
+            }),
+            'twitter': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter your Twitter profile URL',
+            }),
+        }
 
 class UploadMetaDataForm(forms.ModelForm):
     class Meta:

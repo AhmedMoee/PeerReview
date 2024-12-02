@@ -144,7 +144,7 @@ def project_list(request):
 @login_required
 def create_project(request):
     if request.method == 'POST':
-        form = ProjectForm(request.POST, request.FILES)
+        form = ProjectForm(request.POST, request.FILES, owner=request.user)
         if form.is_valid():
             project = form.save(commit=False)
             project.owner = request.user
@@ -158,7 +158,7 @@ def create_project(request):
             project.members.add(request.user)
             return redirect('project_list')
     else:
-        form = ProjectForm()
+        form = ProjectForm(owner=request.user)
 
     return render(request, 'create_project.html', {'form': form})
 

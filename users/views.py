@@ -16,6 +16,7 @@ import time
 import uuid
 from django.http import JsonResponse, HttpResponseRedirect
 from urllib.parse import urlparse
+from django.db.models import Exists, OuterRef
 
 from mysite.settings import AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME
 import boto3
@@ -57,30 +58,71 @@ def common_dashboard(request, user_name):
     
 #display project list helper method    
 def get_projects_context(request):
-    projects = Project.objects.all()
-    is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
+    # Fetch projects with annotations
+    projects = Project.objects.select_related('owner').annotate(
+        user_has_upvoted=Exists(
+            Project.upvoters.through.objects.filter(
+                user_id=request.user.id, project_id=OuterRef('id')
+            )
+        )
+    )
+
+    # Check if the user is a PMA admin
+    is_pma_admin = False
+    is_authenticated = request.user.is_authenticated
+    is_pma_admin = is_authenticated and request.user.groups.filter(name='PMA Administrators').exists()
+
+
+    # Apply sorting based on query params
     sort_by = request.GET.get('sort', '-created_at')
-    
     if sort_by == 'due_date':
         projects = projects.order_by(F('due_date').asc(nulls_last=True))
     elif sort_by == '-due_date':
-        projects = projects.order_by('-due_date')
+        projects = projects.order_by(F('due_date').desc(nulls_last=True))
     elif sort_by == 'created_at':
         projects = projects.order_by('created_at')
     elif sort_by == '-created_at':
         projects = projects.order_by('-created_at')
 
+    # Apply search filter
     search_query = request.GET.get('q', '')
     if search_query:
         projects = projects.filter(
+            Q(name__icontains=search_query) |
             Q(description__icontains=search_query) |
             Q(category__icontains=search_query)
         )
 
+    # Filter visible projects
+    visible_projects = [
+        project for project in projects
+        if not project.is_private or project.owner == request.user
+        or request.user in project.members.all() or is_pma_admin
+    ]
+
+    project_status = None
+    # Determine project status for the current user
+    if is_authenticated and not is_pma_admin:
+        project_status = {
+            project.id: 'member' if request.user in project.members.all() else
+            'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
+            'not_member'
+            for project in visible_projects
+        }
+    
+    # Determine project permissions for the current user
+    project_permissions = {
+        project.id: project.owner == request.user or is_pma_admin
+        for project in visible_projects
+    }
+
+    # Render the response
     return {
-        'projects': projects,
+        'projects': visible_projects,
         'sort_by': sort_by,
-        'is_pma_admin': is_pma_admin
+        'project_status': project_status,
+        'is_pma_admin': is_pma_admin,
+        'project_permissions': project_permissions
     }
 
 @login_required
@@ -92,6 +134,11 @@ def pma_dashboard(request, user_name):
 def anonymous_dashboard(request):
     context = get_projects_context(request)
     return render(request, 'anonymous_dashboard.html', context)
+
+@login_required
+def project_list(request):
+    context = get_projects_context(request)
+    return render(request, 'project_list.html', context)
 
 @login_required
 def create_project(request):
@@ -114,61 +161,73 @@ def create_project(request):
 
     return render(request, 'create_project.html', {'form': form})
 
-from django.db.models import Exists, OuterRef
 
-def project_list(request):
-    projects = Project.objects.annotate(
-        user_has_upvoted=Exists(
-            Project.upvoters.through.objects.filter(
-                user_id=request.user.id, project_id=OuterRef('id')
-            )
-        )
-    )
 
-    is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
-    sort_by = request.GET.get('sort', '-created_at')
+# @login_required
+# def project_list(request):
+#     # Fetch projects with annotations
+#     projects = Project.objects.select_related('owner').annotate(
+#         user_has_upvoted=Exists(
+#             Project.upvoters.through.objects.filter(
+#                 user_id=request.user.id, project_id=OuterRef('id')
+#             )
+#         )
+#     )
 
-    if sort_by == 'due_date':
-        projects = projects.order_by(F('due_date').asc(nulls_last=True))
-    elif sort_by == '-due_date':
-        projects = projects.order_by('-due_date')
-    elif sort_by == 'created_at':
-        projects = projects.order_by('created_at')
-    elif sort_by == '-created_at':
-        projects = projects.order_by('-created_at')
+#     # Check if the user is a PMA admin
+#     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
 
-    search_query = request.GET.get('q', '')
-    if search_query:
-        projects = projects.filter(
-            Q(description__icontains=search_query) |
-            Q(category__icontains=search_query)
-        )
+#     # Apply sorting based on query params
+#     sort_by = request.GET.get('sort', '-created_at')
+#     if sort_by == 'due_date':
+#         projects = projects.order_by(F('due_date').asc(nulls_last=True))
+#     elif sort_by == '-due_date':
+#         projects = projects.order_by(F('due_date').desc(nulls_last=True))
+#     elif sort_by == 'created_at':
+#         projects = projects.order_by('created_at')
+#     elif sort_by == '-created_at':
+#         projects = projects.order_by('-created_at')
 
-    visible_projects = [
-        project for project in projects
-        if not project.is_private or project.owner == request.user
-        or request.user in project.members.all() or is_pma_admin
-    ]
+#     # Apply search filter
+#     search_query = request.GET.get('q', '')
+#     if search_query:
+#         projects = projects.filter(
+#             Q(description__icontains=search_query) |
+#             Q(category__icontains=search_query)
+#         )
 
-    project_status = {
-        project.id: 'member' if request.user in project.members.all() else
-        'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
-        'not_member'
-        for project in visible_projects if request.user.is_authenticated and not is_pma_admin
-    }
+#     # Filter visible projects
+#     visible_projects = [
+#         project for project in projects
+#         if not project.is_private or project.owner == request.user
+#         or request.user in project.members.all() or is_pma_admin
+#     ]
 
-    project_permissions = {
-        project.id: project.owner == request.user or is_pma_admin
-        for project in visible_projects
-    }
+#     # Determine project status for the current user
+#     if request.user.is_authenticated and not is_pma_admin:
+#         project_status = {
+#             project.id: 'member' if request.user in project.members.all() else
+#             'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
+#             'not_member'
+#             for project in visible_projects
+#         }
+#     else:
+#         project_status = {}
 
-    return render(request, 'project_list.html', {
-        'projects': visible_projects,
-        'sort_by': sort_by,
-        'project_status': project_status,
-        'is_pma_admin': is_pma_admin,
-        'project_permissions': project_permissions
-    })
+#     # Determine project permissions for the current user
+#     project_permissions = {
+#         project.id: project.owner == request.user or is_pma_admin
+#         for project in visible_projects
+#     }
+
+#     # Render the response
+#     return render(request, 'project_list.html', {
+#         'projects': visible_projects,
+#         'sort_by': sort_by,
+#         'project_status': project_status,
+#         'is_pma_admin': is_pma_admin,
+#         'project_permissions': project_permissions
+#     })
 
 @login_required
 def request_to_join(request, project_id):

@@ -30,6 +30,12 @@
         .main-content {
             flex: 1;
         }
+        footer {
+            margin-left: -300px;
+            margin-right: -300px;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
     </style>
 </head>
 <body>
@@ -106,8 +112,9 @@
         {% endblock %}
     </div>
 
+    <div style="clear: both;"></div>
     <!-- Footer -->
-    <footer class="bg-light text-center text-lg-start mt-4">
+    <footer class="bg-light text-center text-lg-start mt-4 clearfix">
         <div class="container p-4">
             <p>Authors: Aleya Banthavong, Ahmed Mohamed, Catherine Brockenbrough, Ryan Leyhe, Kyle Phillips </p>
             <p>&copy; 2024 Peer Review App, Software Engineering CS3240 UVA. All rights reserved.</p>

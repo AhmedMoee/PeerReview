@@ -23,16 +23,28 @@ class ProjectModelTest(TestCase):
 
 class UploadModelTest(TestCase):
     def setUp(self):
+        # Create a test user
         self.user = User.objects.create(username='testuser')
+        
+        # Create a test project owned by the user
         self.project = Project.objects.create(name='Test Project', owner=self.user)
-        self.upload = Upload.objects.create(name='Test File', file='testfile.txt', project=self.project)
+        
+        # Create a test upload object with an owner
+        self.upload = Upload.objects.create(
+            name='Test File',
+            file='testfile.txt',
+            project=self.project,
+            owner=self.user  # Add the owner field
+        )
 
     def test_upload_creation(self):
         self.assertEqual(self.upload.name, 'Test File')
         self.assertEqual(self.upload.project, self.project)
-        self.assertIsNotNone(self.upload.uploaded_at)
+        self.assertEqual(self.upload.owner, self.user)  # Verify the owner is set correctly
+        self.assertIsNotNone(self.upload.uploaded_at)  # Ensure the uploaded_at field is populated
 
     def test_string_representation(self):
+        # Verify that the string representation is based on the file name
         self.assertEqual(str(self.upload), 'testfile.txt')
 
 class JoinRequestModelTest(TestCase):

@@ -2,6 +2,18 @@
 
 {% block content %}
 <h2>Your Pending Invitations</h2>
+    
+    <!-- Display Invite message  -->
+    {% if messages %}
+        {% for message in messages %}
+            {% if 'invite-response' in message.tags %}
+                <div class="alert alert-success text-center">
+                    {{ message }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
 
 {% if pending_invitations %}
     <ul class="list-group">

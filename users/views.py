@@ -901,7 +901,8 @@ def manage_invites(request):
 
         # Check if user is already a member
         if project.members.filter(id=user_id).exists():
-            messages.error(request, f'{invited_user.username} is already a member of this project.')
+            messages.error(request, f'{invited_user.username} is already a member of this project.',
+                           extra_tags='invite')
             return redirect('project_detail', project_id=project_id)
 
         # Check if there's already a pending invitation
@@ -912,14 +913,16 @@ def manage_invites(request):
         ).first()
 
         if existing_invitation:
-            messages.warning(request, f'An invitation has already been sent to {invited_user.username}.')
+            messages.warning(request, f'An invitation has already been sent to {invited_user.username}.',
+                             extra_tags='invite')
         else:
             ProjectInvitation.objects.create(
                 project=project,
                 invited_by=request.user,
                 invited_user=invited_user
             )
-            messages.success(request, f'Invitation sent to {invited_user.username} for project {project.name}.')
+            messages.success(request, f'Invitation sent to {invited_user.username} for project {project.name}.',
+                             extra_tags='invite')
 
         return redirect('search_users')
 
@@ -963,13 +966,15 @@ def handle_invitation(request, invitation_id):
                 status='pending'
             ).update(status='accepted')
 
-            messages.success(request, f'You have joined {invitation.project.name}.')
+            messages.success(request, f'You have joined {invitation.project.name}.',
+                             extra_tags='invite-response')
         elif action == 'decline':
             invitation.status = 'DECLINED'
             invitation.response_date = datetime.now()
             invitation.save()
 
-            messages.info(request, f'You have declined the invitation to {invitation.project.name}.')
+            messages.info(request, f'You have declined the invitation to {invitation.project.name}.',
+                          extra_tags='invite-respond')
 
         # delete the invite so users can be invited to join a project again
         invitation.delete()

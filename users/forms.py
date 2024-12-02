@@ -27,6 +27,19 @@ class FileUploadForm(forms.ModelForm):
         return name
 
 class ProjectForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.owner = kwargs.pop('owner', None)  # Pop the owner argument
+        super(ProjectForm, self).__init__(*args, **kwargs)
+
+    def clean_name(self):
+        name = self.cleaned_data['name']
+
+        # Check if a project with the same name exists for the user
+        if Project.objects.filter(name=name, owner=self.owner).exists():
+            raise forms.ValidationError("A project with this name already exists in your account. Please choose a different name.")
+
+        return name
+
     class Meta:
         model = Project
         fields = ['name', 'rubric', 'review_guidelines', 'description', 'due_date', 'category', 'number_of_reviewers', 'is_private']
@@ -39,8 +52,6 @@ class ProjectForm(forms.ModelForm):
             'number_of_reviewers': forms.NumberInput(attrs={'class': 'form-control'}),
             'is_private': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-
-
 
 class PromptForm(forms.ModelForm):
     class Meta:

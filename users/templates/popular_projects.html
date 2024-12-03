@@ -76,7 +76,7 @@
                                         <div class="mb-0 flex-wrap d-flex justify-content-between align-items-start">
                                             <div class="w-50">
                                                 <strong>Owner:</strong>
-                                                <a href="{% url 'view_profile' project.owner.id %}" class="text-decoration-none">{{ project.owner.get_full_name }}</a>
+                                                <a href="{% url 'view_profile' project.owner.id %}" class="text-decoration-none">{{ project.owner.get_full_name|default:project.owner.username }}</a>
                                             </div>
                                             <div class="text-end">
                                                 <strong>Reviewers:</strong> {{ project.current_reviewers_count }} / {{ project.number_of_reviewers }}

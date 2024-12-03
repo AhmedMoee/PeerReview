@@ -4,7 +4,11 @@
 
 {% block content %}
 <div class="container mt-4" style="max-width: 600px;">
-    <h1 class="text-center mb-4">{{ user.get_full_name }}'s Profile</h1>
+    {% if request.user == user %}
+        <h1 class="text-center mb-4">My Profile</h1>
+    {% else %}
+        <h1 class="text-center mb-4">{{ user.get_full_name|default:user.username }}'s Profile</h1>
+    {% endif %}
     <div class="card shadow-sm p-4">
         <h4 class="mb-3">About Me</h4>
         {% if profile.bio %}

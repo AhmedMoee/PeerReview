@@ -126,7 +126,7 @@
 
                         {% if user in project.members.all and not is_pma_admin %}
                             <div class="text-end mt-3">
-                                <a href="{% url 'project_upload' project.name project.id %}" class="btn btn-secondary">Upload Files</a>
+                                <a href="{% url 'project_upload' project.name project.id %}" class="btn btn-primary">Upload Files</a>
                             </div>
                         {% endif %}
                     </div>
@@ -264,7 +264,9 @@
         </div>
         {% endif %}
 
-    {% if is_pma_admin %}
+    {% if 'invitations' in referer %}
+        <a href="{% url 'view_invites' %}" class="btn btn-secondary mt-3" style="background-color: grey;">Back to Invitations</a>
+    {% elif is_pma_admin %}
         <!-- PMA Admins go back to their dashboard -->
         <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-4">Back to Dashboard</a>
     {% elif not user.is_authenticated %}

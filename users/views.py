@@ -178,7 +178,7 @@ def request_to_join(request, project_id):
         JoinRequest.objects.create(user=request.user, project=project)
         messages.success(request, 'Your request to join the project has been submitted.')
 
-    return redirect('project_list')
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 @login_required
 def manage_join_requests(request, project_id):

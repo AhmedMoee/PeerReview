@@ -3,7 +3,7 @@
 {% load custom_filters %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-3">
 
     <!-- Display Invite message -->
     {% if messages %}
@@ -74,7 +74,11 @@
             </div>
             {% endfor %}
         {% else %}
-            <p class="text-center">There are no other users matching your search criteria.</p>
+            {% if search_query %}
+                <p class="text-center">There are no other users matching your search criteria.</p>
+            {% else %}
+                <p class="text-center">There are no other users at the moment.</p>
+            {% endif %}
         {% endif %}
     </div>
 </div>

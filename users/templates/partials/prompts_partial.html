@@ -17,7 +17,9 @@
                             <strong>{{ prompt.content }}</strong>
                             <small class="text-muted float-end">{{ prompt.created_at|date:"F j, Y, g:i a" }}</small>
                             <div>
-                                <small class="text-muted float-start mt-1">{{ prompt.created_by.get_full_name|default:prompt.created_by.username }}</small>
+                                <small>
+                                    <a href="{% url 'view_profile' prompt.created_by.id %}" class="text-muted float-start mt-1 text-decoration-none">{{ prompt.created_by.get_full_name|default:prompt.created_by.username }}</a>
+                                </small>
                             </div>
                         </div>
                         <div class="card-body">
@@ -25,7 +27,10 @@
                             <ul class="list-group list-group-flush mb-3">
                                 {% for response in prompt.responses.all %}
                                     <li class="list-group-item">
-                                        <strong>{{ response.created_by.username }}:</strong> {{ response.content }}
+                                        <a href="{% url 'view_profile' response.created_by.id %}" class="text-decoration-none text-dark">
+                                            <strong>{{ response.created_by.username }}</strong>:
+                                        </a>
+                                        <strong>{{ response.content }}</strong>
                                         <small class="text-muted float-end">{{ response.created_at|date:"F j, Y, g:i a" }}</small>
                                     </li>
                                 {% empty %}

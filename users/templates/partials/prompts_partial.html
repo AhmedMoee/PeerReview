@@ -20,6 +20,13 @@
                                 <small>
                                     <a href="{% url 'view_profile' prompt.created_by.id %}" class="text-muted float-start mt-1 text-decoration-none">{{ prompt.created_by.get_full_name|default:prompt.created_by.username }}</a>
                                 </small>
+                                {% if request.user == prompt.created_by %}
+                                    <!-- Delete button for prompt author -->
+                                    <form method="post" action="{% url 'delete_prompt' prompt.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-link text-danger p-0 ms-2">Delete</button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="card-body">
@@ -32,6 +39,13 @@
                                         </a>
                                         <strong>{{ response.content }}</strong>
                                         <small class="text-muted float-end">{{ response.created_at|date:"F j, Y, g:i a" }}</small>
+                                        {% if request.user == response.created_by %}
+                                        <!-- Delete button for response author -->
+                                        <form method="post" action="{% url 'delete_response' response.id %}" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-link text-danger p-0 ms-2">Delete</button>
+                                        </form>
+                                        {% endif %}
                                     </li>
                                 {% empty %}
                                     <li class="list-group-item text-muted">No replies yet.</li>

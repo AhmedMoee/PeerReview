@@ -21,7 +21,6 @@ urlpatterns = [
     path('load-messages/<int:project_id>/', views.load_messages, name='load_messages'),    
     path('projects/<str:project_name>/<int:id>/view/<int:file_id>/', views.view_file, name='view_file'),
     path('project/<str:project_name>/<int:project_id>/leave/', views.leave_project, name='leave_project'),
-    # path('profile/', views.view_profile, name='view_profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/<int:user_id>/', views.view_profile, name='view_profile'),
     path('refresh-transcription/<str:job_name>/<int:file_id>/', views.refresh_transcription_status, name='refresh_transcription'),
@@ -35,4 +34,6 @@ urlpatterns = [
     path('project/<str:project_name>/<int:id>/upload-files/', views.upload_project_files, name='upload_project_files'),
     path('project/<str:project_name>/<int:id>/delete/<str:resource_type>/', views.delete_project_resources, name='delete_project_resources'),
     path('project/edit/<int:project_id>/', views.edit_project, name='edit_project'),
+    path('delete_prompt/<int:prompt_id>/', views.delete_prompt, name='delete_prompt'),
+    path('delete_response/<int:response_id>/', views.delete_response, name='delete_response'),
 ]

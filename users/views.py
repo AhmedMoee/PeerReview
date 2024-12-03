@@ -609,6 +609,51 @@ def view_file(request, project_name, id, file_id):
         messages.error(request, "You don't have permission to view this file.")
         return redirect('project_view', project_name=project.name, id=project.id)
 
+from django.contrib import messages
+from django.shortcuts import redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import PromptResponse
+
+@login_required
+def delete_prompt(request, prompt_id):
+    if request.method == 'POST':
+        prompt = get_object_or_404(Prompt, id=prompt_id)
+        if request.user == prompt.created_by:
+            # Store necessary information for redirection
+            project_name = prompt.upload.project.name
+            project_id = prompt.upload.project.id
+            file_id = prompt.upload.id
+            prompt.delete()
+            messages.success(request, 'Prompt deleted successfully.')
+        else:
+            messages.error(request, 'You do not have permission to delete this prompt.')
+            project_name = prompt.upload.project.name
+            project_id = prompt.upload.project.id
+            file_id = prompt.upload.id
+        return redirect('view_file', project_name=project_name, id=project_id, file_id=file_id)
+    else:
+        return redirect('view_file', project_name=prompt.upload.project.name, id=prompt.upload.project.id, file_id=prompt.upload.id)
+
+@login_required
+def delete_response(request, response_id):
+    if request.method == 'POST':
+        response = get_object_or_404(PromptResponse, id=response_id)
+        if request.user == response.created_by:
+            # Store necessary information for redirection
+            project_name = response.prompt.upload.project.name
+            project_id = response.prompt.upload.project.id
+            file_id = response.prompt.upload.id
+            response.delete()
+            messages.success(request, 'Response deleted successfully.')
+        else:
+            messages.error(request, 'You do not have permission to delete this response.')
+            project_name = response.prompt.upload.project.name
+            project_id = response.prompt.upload.project.id
+            file_id = response.prompt.upload.id
+        return redirect('view_file', project_name=project_name, id=project_id, file_id=file_id)
+    else:
+        return redirect('view_file', project_name=response.prompt.upload.project.name, id=response.prompt.upload.project.id, file_id=response.prompt.upload.id)
+
 @login_required
 def view_profile(request, user_id):
 

@@ -24,7 +24,7 @@ load_dotenv()
 SECRET_KEY = 'django-insecure-+!r0i(emln-g5)ous&knffqw2l@b@x26dowy^y50#mm*swjp1)'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'uva-cs-3240-project-b-10-7d152fd5a130.herokuapp.com']
 
@@ -49,21 +49,21 @@ INSTALLED_APPS = [
     'storages'
 ]
 
-SOCIALACCOUNT_PROVIDERS = {
+# SOCIALACCOUNT_PROVIDERS = {
 
-    "google": {
-         'APP': {
-            'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
-            'secret': os.getenv('GOOGLE_SECRET'),  # Replace with your actual Client Secret
-            'key': ''
-        },
-        "SCOPE": [
-            'profile',
-            'email'
-        ],
-        'AUTH_PARAMS': {'access_type': 'online'}
-    }
-}
+#     "google": {
+#          'APP': {
+#             'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
+#             'secret': os.getenv('GOOGLE_SECRET'),  # Replace with your actual Client Secret
+#             'key': ''
+#         },
+#         "SCOPE": [
+#             'profile',
+#             'email'
+#         ],
+#         'AUTH_PARAMS': {'access_type': 'online'}
+#     }
+# }
 
 # SOCIALACCOUNT_PROVIDERS = {
 #
@@ -113,18 +113,18 @@ ASGI_APPLICATION = 'mysite.asgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-    # 'default': dj_database_url.config(
-    #     default=os.getenv('DATABASE_URL', 'postgres://{}:{}@{}:{}/{}'.format(
-    #         os.getenv('DB_USER'),
-    #         os.getenv('DB_PASSWORD'),
-    #         os.getenv('DB_HOST'),
-    #         os.getenv('DB_PORT'),
-    #         os.getenv('DB_NAME')
-    #     )))
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    # }
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL', 'postgres://{}:{}@{}:{}/{}'.format(
+            os.getenv('DB_USER'),
+            os.getenv('DB_PASSWORD'),
+            os.getenv('DB_HOST'),
+            os.getenv('DB_PORT'),
+            os.getenv('DB_NAME')
+        )))
 }
 if os.getenv('TESTING'):
     DATABASES['default'] = {

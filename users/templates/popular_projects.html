@@ -33,7 +33,20 @@
                             <div class="row">
                                 <!-- Left Column: Recent Files -->
                                 <div class="col-md-4 mb-3">
-                                    {% if project.latest_upload %}
+                                    <div class="mb-3">
+                                        <!-- Project Owner and Reviewers -->
+                                        <div class="mb-0 flex-wrap d-flex justify-content-between align-items-start">
+                                            <div class="text-end">
+                                                <strong>Category:</strong>
+                                                <a class="text-decoration-none">{{ project.category }}</a>
+                                            </div>
+                                            <div class="text-end">
+                                                <strong>Due Date:</strong>
+                                                <a class="text-decoration-none">{{ project.due_date }}</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- {% if project.latest_upload %}
                                         {% with file_url=project.latest_upload.signed_url file_type=project.latest_upload.file_type upload_name=project.latest_upload.name %}
                                             {% if "image/jpeg" in file_type or "image/png" in file_type %}
                                                 <img src="{{ file_url }}" alt="{{ upload_name }}" style="max-width: 100%; height: auto; pointer-events: none;">
@@ -52,7 +65,7 @@
                                         {% endwith %}
                                     {% else %}
                                         <p>No recent uploads available.</p>
-                                    {% endif %}
+                                    {% endif %} -->
                                 </div>
 
                                 <!-- Right Column: Project Owner, Reviewers, and Description -->

@@ -1036,3 +1036,32 @@ def settings_edit(request):
         form = UserEditForm(instance=request.user)
 
     return render(request, 'settings_edit.html', {'form': form})
+
+
+@login_required
+def edit_project(request, project_id):
+    # Get the project, ensuring the current user is the owner
+    project = get_object_or_404(Project, id=project_id, owner=request.user)
+
+
+    if request.method == 'POST':
+        # Create form with POST data and existing project instance
+        form = ProjectForm(request.POST, request.FILES, instance=project)
+        if form.is_valid():
+            # Save the form
+            project = form.save()
+           
+            # Optional: Add success message
+            messages.success(request, f'Project "{project.name}" updated successfully.')
+           
+            # Redirect to project detail page
+            return redirect('project_main_view', project.name, project.id)
+    else:
+        # Prefill the form with existing project data
+        form = ProjectForm(instance=project)
+
+
+    return render(request, 'edit_project.html', {
+        'form': form,
+        'project': project
+    })

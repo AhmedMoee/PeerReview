@@ -49,21 +49,21 @@ INSTALLED_APPS = [
     'storages'
 ]
 
-# SOCIALACCOUNT_PROVIDERS = {
+SOCIALACCOUNT_PROVIDERS = {
 
-#     "google": {
-#          'APP': {
-#             'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
-#             'secret': os.getenv('GOOGLE_SECRET'),  # Replace with your actual Client Secret
-#             'key': ''
-#         },
-#         "SCOPE": [
-#             'profile',
-#             'email'
-#         ],
-#         'AUTH_PARAMS': {'access_type': 'online'}
-#     }
-# }
+    "google": {
+         'APP': {
+            'client_id': os.getenv('GOOGLE_ID'),  # Replace with your actual Client ID
+            'secret': os.getenv('GOOGLE_SECRET'),  # Replace with your actual Client Secret
+            'key': ''
+        },
+        "SCOPE": [
+            'profile',
+            'email'
+        ],
+        'AUTH_PARAMS': {'access_type': 'online'}
+    }
+}
 
 # SOCIALACCOUNT_PROVIDERS = {
 #

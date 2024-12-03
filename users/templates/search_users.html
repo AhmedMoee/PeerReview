@@ -4,7 +4,23 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h1 class="mb-4 text-center">All Users</h1>
+
+    <!-- Display Invite message -->
+    {% if messages %}
+        {% for message in messages %}
+            {% if 'invite' in message.tags %}
+                <div class="alert alert-success text-center">
+                    {{ message }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+    {% if project_id %}
+        <h2 class="mb-4 text-center">Invite Users to <strong>"{{ selected_project.name }}"</strong></h2>
+    {% else %}
+        <h1 class="mb-4 text-center">All Users</h1>
+    {% endif %}
     
     <!-- Search Bar -->
     <form method="get" action="{% url 'search_users' %}" class="mb-4">
@@ -41,7 +57,16 @@
                             {% elif user|is_admin %}
                                 <a href="{% url 'view_profile' user.id %}" class="btn btn-outline-success w-100">View Admin Profile</a>
                             {% else %}
-                                <a href="{% url 'select_project_for_invite' user.id %}" class="btn btn-outline-success w-100">Invite</a>
+                                {% if project_id %}
+                                    <form method="POST" action="{% url 'manage_invites' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="project_id" value="{{ project_id }}">
+                                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                                        <button type="submit" class="btn btn-outline-success w-100">Invite</button>
+                                    </form>
+                                {% else %}
+                                    <a href="{% url 'select_project_for_invite' user.id %}" class="btn btn-outline-success w-100">Invite</a>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>

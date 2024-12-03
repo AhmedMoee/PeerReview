@@ -2,14 +2,20 @@
 {% load widget_tweaks %}
 {% load socialaccount %}
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-3">
 
     <div class="card mb-4">
-      <div class="card-body">
-        <h1 class="card-title">{{ project.name }}</h1>
-        <p class="card-text">{{ project.description }}</p>
+        <div class="card-body">
+          <h1 class="card-title">{{ project.name }}</h1>
+          <p class="card-text">{{ project.description }}</p>
+        </div>
+        {% if is_owner_or_admin %}
+          <a href="{% url 'edit_project' project.id %}" class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-edit me-1"></i>Edit Project
+          </a>
+        {% endif %}
       </div>
-    </div>
+  
 
     {% if user.is_authenticated %}
         <div class="row">
@@ -100,7 +106,7 @@
                             {% for file in files %}
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     {% if user in project.members.all or is_owner_or_admin %}
-                                        <a href="{% url 'view_file' project.name project.id file.id %}">{{ file.name }}</a>
+                                        <a href="{% url 'view_file' project.name project.id file.id %}" class="text-decoration-none">{{ file.name }}</a>
                                     <!-- change visibility based on privacy -->
                                     {% else %}
                                         <p class="mb-0">{{ file.name }}</p>
@@ -169,7 +175,7 @@
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item">
                                 <strong>
-                                    <a href="{% url 'view_profile' project.owner.id %}">
+                                    <a href="{% url 'view_profile' project.owner.id %}" class="text-decoration-none">
                                         {{ project.owner.get_full_name|default:project.owner.username }}
                                     </a>
                                 </strong>
@@ -178,7 +184,7 @@
                             {% for member in project.members.all %}
                                 {% if member != project.owner %}
                                     <li class="list-group-item">
-                                        <a href="{% url 'view_profile' member.id %}">
+                                        <a href="{% url 'view_profile' member.id %}" class="text-decoration-none">
                                             {{ member.get_full_name|default:member.username }}
                                         </a>
                                     </li>
@@ -186,6 +192,13 @@
                             {% endfor %}
                         </ul>
                     </div>
+                    {% if project.current_reviewers_count < project.number_of_reviewers and is_owner_or_admin %}
+                        <div class="card-footer text-center">
+                            <a href="{% url 'search_users' %}?project_id={{ project.id }}" class="btn btn-outline-primary w-100">
+                                Invite Others
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             
                 <div>
@@ -198,14 +211,12 @@
                             </form>
                         {% endif %}
                     {% endif %}
-
                     <!-- Manage Requests Button for Owner -->
                     {% if user == project.owner %}
                         <div class="mt-3">
                             <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-primary w-100">Manage Join Requests</a>
                         </div>
                     {% endif %}
-
                     <!-- Delete Project Button for Owner -->
                     {% if is_owner_or_admin %}
                         <div class="mt-3">
@@ -266,8 +277,12 @@
 
 </div>
 
-<!-- jQuery and AJAX for Chat -->
-<!-- jQuery and AJAX for Chat -->
+<style>
+    .card-body .list-group-item .badge {
+        margin-left: 10px;  /* Add space between the name and the badge */
+    }
+</style>
+
 <!-- jQuery and AJAX for Chat -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
@@ -285,6 +300,14 @@
 
         $('#refresh-button').on('click', function() {
             loadMessages();
+        });
+        
+        // Handle message form submission with Enter key
+        $('#chat-message-input').on('keypress', function(event) {
+            if (event.which === 13 && !event.shiftKey) { // Check for Enter key (without Shift for newline)
+                event.preventDefault();
+                $('#message-form').submit();
+            }
         });
 
         $('#message-form').on('submit', function(event) {

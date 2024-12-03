@@ -122,7 +122,8 @@ def get_projects_context(request):
         'sort_by': sort_by,
         'project_status': project_status,
         'is_pma_admin': is_pma_admin,
-        'project_permissions': project_permissions
+        'project_permissions': project_permissions,
+        'search_query': search_query
     }
 
 @login_required
@@ -143,7 +144,7 @@ def project_list(request):
 @login_required
 def create_project(request):
     if request.method == 'POST':
-        form = ProjectForm(request.POST, request.FILES)
+        form = ProjectForm(request.POST, request.FILES, owner=request.user)
         if form.is_valid():
             project = form.save(commit=False)
             project.owner = request.user
@@ -157,77 +158,10 @@ def create_project(request):
             project.members.add(request.user)
             return redirect('project_list')
     else:
-        form = ProjectForm()
+        form = ProjectForm(owner=request.user)
 
     return render(request, 'create_project.html', {'form': form})
 
-
-
-# @login_required
-# def project_list(request):
-#     # Fetch projects with annotations
-#     projects = Project.objects.select_related('owner').annotate(
-#         user_has_upvoted=Exists(
-#             Project.upvoters.through.objects.filter(
-#                 user_id=request.user.id, project_id=OuterRef('id')
-#             )
-#         )
-#     )
-
-#     # Check if the user is a PMA admin
-#     is_pma_admin = request.user.groups.filter(name='PMA Administrators').exists()
-
-#     # Apply sorting based on query params
-#     sort_by = request.GET.get('sort', '-created_at')
-#     if sort_by == 'due_date':
-#         projects = projects.order_by(F('due_date').asc(nulls_last=True))
-#     elif sort_by == '-due_date':
-#         projects = projects.order_by(F('due_date').desc(nulls_last=True))
-#     elif sort_by == 'created_at':
-#         projects = projects.order_by('created_at')
-#     elif sort_by == '-created_at':
-#         projects = projects.order_by('-created_at')
-
-#     # Apply search filter
-#     search_query = request.GET.get('q', '')
-#     if search_query:
-#         projects = projects.filter(
-#             Q(description__icontains=search_query) |
-#             Q(category__icontains=search_query)
-#         )
-
-#     # Filter visible projects
-#     visible_projects = [
-#         project for project in projects
-#         if not project.is_private or project.owner == request.user
-#         or request.user in project.members.all() or is_pma_admin
-#     ]
-
-#     # Determine project status for the current user
-#     if request.user.is_authenticated and not is_pma_admin:
-#         project_status = {
-#             project.id: 'member' if request.user in project.members.all() else
-#             'pending' if JoinRequest.objects.filter(user=request.user, project=project, status='pending').exists() else
-#             'not_member'
-#             for project in visible_projects
-#         }
-#     else:
-#         project_status = {}
-
-#     # Determine project permissions for the current user
-#     project_permissions = {
-#         project.id: project.owner == request.user or is_pma_admin
-#         for project in visible_projects
-#     }
-
-#     # Render the response
-#     return render(request, 'project_list.html', {
-#         'projects': visible_projects,
-#         'sort_by': sort_by,
-#         'project_status': project_status,
-#         'is_pma_admin': is_pma_admin,
-#         'project_permissions': project_permissions
-#     })
 
 @login_required
 def request_to_join(request, project_id):
@@ -499,17 +433,6 @@ def delete_file(request, project_name, id, file_id):
 
     return redirect('project_main_view', project_name=project_name, id=id)
 
-# @login_required
-# def create_message(request, project_id, user_id):
-#     if request.method == 'POST':
-#         content = request.POST.get('content')
-#         if content:
-#             user = get_object_or_404(User, id=user_id)
-#             project = get_object_or_404(Project, id=project_id)
-#             Message.objects.create(content=content, project=project, user=user)
-#             return JsonResponse({'status': 'Message sent'})
-#     return JsonResponse({'error': 'Invalid request'}, status=400)
-
 @login_required
 def create_message(request, project_id):
     if request.method == 'POST':
@@ -536,53 +459,6 @@ def load_messages(request, project_id):
     messages = Message.objects.filter(project_id=project_id).order_by('created_at')
     messages_list = [{'content': message.content, 'username':message.user.username} for message in messages]
     return JsonResponse({'messages': messages_list})
-
-# def create_message(request, id) -> HttpResponse:
-#     content = request.POST.get("content")
-#     user = get_object_or_404(User, request.POST.get("user_id"))
-#     project_id = id
-#     project = get_object_or_404(Project, id=project_id)
-
-#     if content:
-#         Message.objects.create(user=user, content=content, project=project)
-#         return HttpResponse(status=201)
-#     else:
-#         return HttpResponse(status=200)
-
-# async def stream_messages(request: HttpRequest, id) -> StreamingHttpResponse:
-#     project_id = id
-#     async def event_stream():
-#         """
-#         We use this function to send a continuous stream of data
-#         to the connected clients.
-#         """
-#         async for message in get_existing_messages():
-#             yield message
-
-#         last_id = await get_last_message_id()
-
-#         # Continuously check for new messages
-#         while True:
-#             new_messages = Message.objects.filter(id__gt=last_id, project__id = id).order_by('created_at').values(
-#                 'id', 'user', 'content'
-#             )
-#             async for message in new_messages:
-#                 yield f"data: {json.dumps(message)}\n\n"
-#                 last_id = message['id']
-#             await asyncio.sleep(0.1)  # Adjust sleep time as needed to reduce db queries.
-
-#     async def get_existing_messages() -> AsyncGenerator:
-#         messages = Message.objects.filter(project__id=project_id).order_by('created_at').values(
-#             'id', 'user', 'content'
-#         )
-#         async for message in messages:
-#             yield f"data: {json.dumps(message)}\n\n"
-
-#     async def get_last_message_id() -> int:
-#         last_message = await Message.objects.filter(project__id=project_id).alast()
-#         return last_message.id if last_message else 0
-
-#     return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
 
 import mimetypes  # https://docs.python.org/3/library/mimetypes.html
 from .forms import PromptForm, PromptResponseForm
@@ -851,13 +727,26 @@ def refresh_transcription_status(request, job_name, file_id):
 
 @login_required
 def search_users(request):
-    search_query = request.GET.get('q', '').strip()  # Get the search query
+    # Get the search query and project_id from the request
+    search_query = request.GET.get('q', '').strip()
+    project_id = request.GET.get("project_id")
+
+    # Fetch the selected project if project_id is provided
+    selected_project = None
+    if project_id:
+        selected_project = get_object_or_404(Project, id=project_id)
+
+
     # Get all users except the logged-in user and django admin users
     users = User.objects.exclude(id=request.user.id)
 
     # remove django admin users
     users = users.exclude(is_staff=True)  # exclude staff status accounts
     users = users.exclude(is_superuser=True)  # exclude superuser status accounts
+
+    # Exclude users who are already members of the selected project
+    if selected_project:
+        users = users.exclude(id__in=selected_project.members.values_list('id', flat=True))
 
     if search_query:
         # Filter users by username, full name, or bio
@@ -871,6 +760,8 @@ def search_users(request):
     context = {
         'users': users,
         'search_query': search_query,
+        "project_id": project_id,
+        "selected_project": selected_project,
     }
     return render(request, 'search_users.html', context)
 
@@ -886,7 +777,8 @@ def manage_invites(request):
 
         # Check if user is already a member
         if project.members.filter(id=user_id).exists():
-            messages.error(request, f'{invited_user.username} is already a member of this project.')
+            messages.error(request, f'{invited_user.username} is already a member of this project.',
+                           extra_tags='invite')
             return redirect('project_detail', project_id=project_id)
 
         # Check if there's already a pending invitation
@@ -897,14 +789,16 @@ def manage_invites(request):
         ).first()
 
         if existing_invitation:
-            messages.warning(request, f'An invitation has already been sent to {invited_user.username}.')
+            messages.warning(request, f'An invitation has already been sent to {invited_user.username}.',
+                             extra_tags='invite')
         else:
             ProjectInvitation.objects.create(
                 project=project,
                 invited_by=request.user,
                 invited_user=invited_user
             )
-            messages.success(request, f'Invitation sent to {invited_user.username} for project {project.name}.')
+            messages.success(request, f'Invitation sent to {invited_user.username} for project {project.name}.',
+                             extra_tags='invite')
 
         return redirect('search_users')
 
@@ -948,13 +842,15 @@ def handle_invitation(request, invitation_id):
                 status='pending'
             ).update(status='accepted')
 
-            messages.success(request, f'You have joined {invitation.project.name}.')
+            messages.success(request, f'You have joined {invitation.project.name}.',
+                             extra_tags='invite-response')
         elif action == 'decline':
             invitation.status = 'DECLINED'
             invitation.response_date = datetime.now()
             invitation.save()
 
-            messages.info(request, f'You have declined the invitation to {invitation.project.name}.')
+            messages.info(request, f'You have declined the invitation to {invitation.project.name}.',
+                          extra_tags='invite-respond')
 
         # delete the invite so users can be invited to join a project again
         invitation.delete()
@@ -990,6 +886,7 @@ def upvote_project(request, project_id):
         project.save()
         return JsonResponse({'status': 'added', 'upvotes': project.upvotes})
 
+@login_required
 def popular_projects(request):
     projects = Project.objects.annotate(
         user_has_upvoted=Exists(
@@ -1141,19 +1038,30 @@ def settings_edit(request):
     return render(request, 'settings_edit.html', {'form': form})
 
 
-# @login_required
-# def settings(request):
-#     if request.method == 'POST':
-#         form = UserEditForm(request.POST, instance=request.user)
-#         if form.is_valid():
-#             form.save()
-#             messages.success(request, 'Your account settings have been updated.')
-#             return redirect('settings')  # Redirect only on success
-#         else:
-#             messages.error(request, 'Please correct the errors below.')
-#             # Render the page with the form errors and show the edit view
-#             return render(request, 'settings.html', {'form': form, 'user': request.user, 'show_edit': True})
-#     else:
-#         form = UserEditForm(instance=request.user)
+@login_required
+def edit_project(request, project_id):
+    # Get the project, ensuring the current user is the owner
+    project = get_object_or_404(Project, id=project_id, owner=request.user)
 
-#     return render(request, 'settings.html', {'form': form, 'user': request.user, 'show_edit': False})
+
+    if request.method == 'POST':
+        # Create form with POST data and existing project instance
+        form = ProjectForm(request.POST, request.FILES, instance=project)
+        if form.is_valid():
+            # Save the form
+            project = form.save()
+           
+            # Optional: Add success message
+            messages.success(request, f'Project "{project.name}" updated successfully.')
+           
+            # Redirect to project detail page
+            return redirect('project_main_view', project.name, project.id)
+    else:
+        # Prefill the form with existing project data
+        form = ProjectForm(instance=project)
+
+
+    return render(request, 'edit_project.html', {
+        'form': form,
+        'project': project
+    })

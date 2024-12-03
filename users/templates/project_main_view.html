@@ -64,31 +64,6 @@
                 {% endif %}
                 </div>
 
-                <!-- Upload Section for Project Owner -->
-                {% if user == project.owner %}
-                    <div class="card mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h2 class="h4 mb-0">Upload Rubric or Review Guidelines</h2>
-                        </div>
-                        <div class="card-body">
-                            <form method="post" enctype="multipart/form-data" action="{% url 'upload_project_files' project_name=project.name id=project.id %}">
-                                {% csrf_token %}
-                                <div class="form-group mb-3">
-                                    <label for="id_rubric">Upload Rubric:</label>
-                                    <input type="file" name="rubric" id="id_rubric" class="form-control" />
-                                </div>
-                                <div class="form-group mb-3">
-                                    <label for="id_review_guidelines">Upload Review Guidelines:</label>
-                                    <input type="file" name="review_guidelines" id="id_review_guidelines" class="form-control" />
-                                </div>
-                                <div class="text-end">
-                                    <button type="submit" class="btn btn-primary">Upload</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                {% endif %}
-
                 <!-- Uploaded Files and Search Section -->
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">
@@ -131,6 +106,31 @@
                         {% endif %}
                     </div>
                 </div>
+
+                <!-- Upload Section for Project Owner -->
+                {% if user == project.owner %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h2 class="h4 mb-0">Upload Rubric or Review Guidelines</h2>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data" action="{% url 'upload_project_files' project_name=project.name id=project.id %}">
+                                {% csrf_token %}
+                                <div class="form-group mb-3">
+                                    <label for="id_rubric">Upload Rubric:</label>
+                                    <input type="file" name="rubric" id="id_rubric" class="form-control" />
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="id_review_guidelines">Upload Review Guidelines:</label>
+                                    <input type="file" name="review_guidelines" id="id_review_guidelines" class="form-control" />
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-primary">Upload</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
 
                 <!-- Request to Join Button for Common Users Only -->
                 {% if not user in project.members.all and not is_owner_or_admin %}

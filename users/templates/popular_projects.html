@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-3">
     <h1 class="mb-4 text-center">Popular Projects</h1>
     <div class="row">
         {% for project in projects %}
@@ -31,103 +31,133 @@
                         <!-- Card Body -->
                         <div class="card-body">
                             <div class="row">
-                                <!-- Left Column: Recent Files -->
-                                <div class="col-md-4 mb-3">
-                                    <div class="mb-3">
-                                        <!-- Project Owner and Reviewers -->
-                                        <div class="mb-0 flex-wrap d-flex justify-content-between align-items-start">
-                                            <div class="text-end">
-                                                <strong>Category:</strong>
-                                                <a class="text-decoration-none">{{ project.category }}</a>
-                                            </div>
-                                            <div class="text-end">
-                                                <strong>Due Date:</strong>
-                                                <a class="text-decoration-none">{{ project.due_date }}</a>
-                                            </div>
+                                <!-- Top Section: Topic, Due Date, Owner, and Reviewers -->
+                                <div class="d-flex justify-content-between mb-3">
+                                    <!-- Left: Topic and Due Date -->
+                                    <div>
+                                        <div>
+                                            <strong>Topic:</strong> {{ project.category }}
+                                        </div>
+                                        <div>
+                                            <strong>Due Date:</strong> {{ project.due_date }}
                                         </div>
                                     </div>
-                                    <!-- {% if project.latest_upload %}
-                                        {% with file_url=project.latest_upload.signed_url file_type=project.latest_upload.file_type upload_name=project.latest_upload.name %}
-                                            {% if "image/jpeg" in file_type or "image/png" in file_type %}
-                                                <img src="{{ file_url }}" alt="{{ upload_name }}" style="max-width: 100%; height: auto; pointer-events: none;">
-                                            {% elif "application/pdf" in file_type %}
-                                                <iframe src="{{ file_url }}" width="100%" height="150px" style="pointer-events: none;"></iframe>
-                                            {% elif "text/plain" in file_type %}
-                                                <iframe src="{{ file_url }}" width="100%" height="150px" style="pointer-events: none;"></iframe>
-                                            {% elif file_type|is_transcribable and "video/mp4" in file_type %}
-                                                <video style="max-width: 100%; height: auto; pointer-events: none;" controls>
-                                                    <source src="{{ file_url }}" type="video/mp4">
-                                                </video>
-                                            {% else %}
-                                                <p>File type detected: {{ file_type }}</p>
-                                                <p>This file type cannot be displayed directly. You can <a href="{{ project.latest_upload.signed_url }}" download>download it here</a>.</p>
-                                            {% endif %}
-                                        {% endwith %}
-                                    {% else %}
-                                        <p>No recent uploads available.</p>
-                                    {% endif %} -->
+                        
+                                    <!-- Right: Owner and Reviewers -->
+                                    <div class="text-end">
+                                        <div>
+                                            <strong>Owner:</strong>
+                                            <a href="{% url 'view_profile' project.owner.id %}" class="text-decoration-none">
+                                                {{ project.owner.get_full_name|default:project.owner.username }}
+                                            </a>
+                                        </div>
+                                        <div>
+                                            <strong>Reviewers:</strong> {{ project.current_reviewers_count }} / {{ project.number_of_reviewers }}
+                                        </div>
+                                    </div>
                                 </div>
-
-                                <!-- Right Column: Project Owner, Reviewers, and Description -->
-                                <div class="col-md-8">
-
-                                    <div class="mb-3">
-                                        <!-- Project Owner and Reviewers -->
-                                        <div class="mb-0 flex-wrap d-flex justify-content-between align-items-start">
-                                            <div class="w-50">
-                                                <strong>Owner:</strong>
-                                                <a href="{% url 'view_profile' project.owner.id %}" class="text-decoration-none">{{ project.owner.get_full_name }}</a>
-                                            </div>
-                                            <div class="text-end">
-                                                <strong>Reviewers:</strong> {{ project.current_reviewers_count }} / {{ project.number_of_reviewers }}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Project Description -->
-                                    <div class="mb-3">
-                                        <div class="mb-0">
-                                            <h6 class="mt-0 mb-1 fw-bold">About:</h6>
-                                            {% if project.description %}
-                                                <p class="card-text">{{ project.description|truncatechars:200 }}</p>
-                                            {% else %}
-                                                <p class="text-muted"><em>No description available.</em></p>
-                                            {% endif %}
-                                        </div>
-                                    </div>
+                        
+                                <!-- Description Section -->
+                                <div>
+                                    <h6 class="mt-0 mb-1 fw-bold">About:</h6>
+                                    {% if project.description %}
+                                        <p class="card-text text-muted">{{ project.description|truncatechars:200 }}</p>
+                                    {% else %}
+                                        <p class="text-muted"><em>No description available.</em></p>
+                                    {% endif %}
                                 </div>
                             </div>
-
-                        </div>
+                        </div>                                     
 
                         <!-- Card Footer -->
                         <div class="card-footer d-flex justify-content-between align-items-center">
                             <div>
-                                <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-outline-info btn-sm">View</a>
-                                {% if user.is_authenticated and not is_pma_admin %}
+                                <a href="{% url 'project_main_view' project.name project.id %}" class="btn btn-outline-info btn-sm btn-uniform">View</a>
+                            </div>
+                            <div>
+                                {% if user.is_authenticated %}
                                     {% if project.owner.id == request.user.id %}
-                                        <a href="{% url 'manage_join_requests' project.id %}" class="btn btn-primary btn-sm">Manage Requests</a>
+                                        <!-- Owner State -->
+                                        <span class="btn btn-uniform btn-owner">Owner</span>
                                     {% elif project.pending_request %}
-                                        <span class="badge bg-warning">Request Pending</span>
+                                        <!-- Pending Request State -->
+                                        <span class="btn btn-uniform btn-warning">Request Pending</span>
                                     {% elif request.user in project.members.all %}
-                                        <span class="badge bg-success">Member</span>
+                                        <!-- Member State -->
+                                        <span class="btn btn-uniform btn-success">Member</span>
                                     {% elif project.current_reviewers_count == project.number_of_reviewers %}
-                                        <span class="badge bg-danger">Project Full</span>
+                                        <!-- Project Full -->
+                                        <span class="btn btn-uniform btn-danger">Project Full</span>
                                     {% else %}
+                                        <!-- Not a Member State -->
                                         <form action="{% url 'request_to_join' project.id %}" method="post" class="d-inline-block">
                                             {% csrf_token %}
-                                            <button type="submit" class="btn btn-primary btn-sm">Request to Join</button>
+                                            <button type="submit" class="btn btn-primary btn-sm btn-uniform">Request to Join</button>
                                         </form>
                                     {% endif %}
                                 {% endif %}
                             </div>
-                        </div>
+                        </div>                        
                     </div>
                 </div>
             {% endif %}
         {% endfor %}
     </div>
 </div>
-{% endblock %}
 
 <script src="{% static 'actions.js' %}"></script>
+<style>
+    /* Uniform button styling */
+    .btn-uniform {
+        width: 150px;
+        text-align: center;
+        padding: 0.5rem 0;
+        font-size: 0.875rem;
+        border-radius: 0.25rem;
+    }
+
+    .btn-owner {
+        background-color: #001f3f; /* Navy blue */
+        color: white;
+        border: none;
+    }
+
+    .btn-warning {
+        background-color: #ffc107; /* Yellow */
+        color: black;
+    }
+
+    .btn-danger {
+        background-color: #dc3545; /* Red */
+        color: white;
+    }
+
+    .btn-success {
+        background-color: #28a745; /* Green */
+        color: white;
+    }
+
+    /* No hover effects for non-actionable buttons */
+    .btn-owner,
+    .btn-success,
+    .btn-warning,
+    .btn-danger {
+        pointer-events: none; /* Disable hover and interaction */
+        cursor: default;
+    }
+
+    /* Hover effect only for actionable buttons */
+    .btn-primary:hover {
+        background-color: #0056b3; /* Darker blue */
+        border-color: #004085;
+        color: white;
+    }
+
+    /* Optional: Subtle hover effect for 'View' button */
+    .btn-outline-info:hover {
+        background-color: #17a2b8;
+        color: white;
+    }
+</style>
+
+{% endblock %}

@@ -178,7 +178,7 @@ def request_to_join(request, project_id):
         JoinRequest.objects.create(user=request.user, project=project)
         messages.success(request, 'Your request to join the project has been submitted.')
 
-    return redirect('project_list')
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 @login_required
 def manage_join_requests(request, project_id):
@@ -609,6 +609,51 @@ def view_file(request, project_name, id, file_id):
         messages.error(request, "You don't have permission to view this file.")
         return redirect('project_view', project_name=project.name, id=project.id)
 
+from django.contrib import messages
+from django.shortcuts import redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import PromptResponse
+
+@login_required
+def delete_prompt(request, prompt_id):
+    if request.method == 'POST':
+        prompt = get_object_or_404(Prompt, id=prompt_id)
+        if request.user == prompt.created_by:
+            # Store necessary information for redirection
+            project_name = prompt.upload.project.name
+            project_id = prompt.upload.project.id
+            file_id = prompt.upload.id
+            prompt.delete()
+            messages.success(request, 'Prompt deleted successfully.')
+        else:
+            messages.error(request, 'You do not have permission to delete this prompt.')
+            project_name = prompt.upload.project.name
+            project_id = prompt.upload.project.id
+            file_id = prompt.upload.id
+        return redirect('view_file', project_name=project_name, id=project_id, file_id=file_id)
+    else:
+        return redirect('view_file', project_name=prompt.upload.project.name, id=prompt.upload.project.id, file_id=prompt.upload.id)
+
+@login_required
+def delete_response(request, response_id):
+    if request.method == 'POST':
+        response = get_object_or_404(PromptResponse, id=response_id)
+        if request.user == response.created_by:
+            # Store necessary information for redirection
+            project_name = response.prompt.upload.project.name
+            project_id = response.prompt.upload.project.id
+            file_id = response.prompt.upload.id
+            response.delete()
+            messages.success(request, 'Response deleted successfully.')
+        else:
+            messages.error(request, 'You do not have permission to delete this response.')
+            project_name = response.prompt.upload.project.name
+            project_id = response.prompt.upload.project.id
+            file_id = response.prompt.upload.id
+        return redirect('view_file', project_name=project_name, id=project_id, file_id=file_id)
+    else:
+        return redirect('view_file', project_name=response.prompt.upload.project.name, id=response.prompt.upload.project.id, file_id=response.prompt.upload.id)
+
 @login_required
 def view_profile(request, user_id):
 
@@ -947,6 +992,13 @@ def upload_project_files(request, project_name, id):
                 rubric_file = request.FILES['rubric']
                 print(f'Uploading rubric {rubric_file.name} to S3...')
                 
+                if project.rubric:
+                    try:
+                        s3.delete_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key=project.rubric.name)
+                        print('Old rubric deleted from S3.')
+                    except Exception as e:
+                        print(f'Error deleting old rubric: {e}')
+
                 # Upload to S3
                 s3.upload_fileobj(
                     rubric_file,
@@ -962,6 +1014,13 @@ def upload_project_files(request, project_name, id):
             if 'review_guidelines' in request.FILES:
                 guidelines_file = request.FILES['review_guidelines']
                 print(f'Uploading guidelines {guidelines_file.name} to S3...')
+                
+                if project.review_guidelines:
+                    try:
+                        s3.delete_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key=project.review_guidelines.name)
+                        print('Old review guidelines deleted from S3.')
+                    except Exception as e:
+                        print(f'Error deleting old review guidelines: {e}')
                 
                 # Upload to S3
                 s3.upload_fileobj(
@@ -1037,7 +1096,7 @@ def settings_edit(request):
 
     return render(request, 'settings_edit.html', {'form': form})
 
-
+from .forms import ProjectEditForm
 @login_required
 def edit_project(request, project_id):
     # Get the project, ensuring the current user is the owner
@@ -1046,7 +1105,7 @@ def edit_project(request, project_id):
 
     if request.method == 'POST':
         # Create form with POST data and existing project instance
-        form = ProjectForm(request.POST, request.FILES, instance=project)
+        form = ProjectEditForm(request.POST, request.FILES, instance=project)
         if form.is_valid():
             # Save the form
             project = form.save()
@@ -1058,7 +1117,7 @@ def edit_project(request, project_id):
             return redirect('project_main_view', project.name, project.id)
     else:
         # Prefill the form with existing project data
-        form = ProjectForm(instance=project)
+        form = ProjectEditForm(instance=project)
 
 
     return render(request, 'edit_project.html', {

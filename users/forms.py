@@ -30,6 +30,11 @@ class ProjectForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.owner = kwargs.pop('owner', None)  # Pop the owner argument
         super(ProjectForm, self).__init__(*args, **kwargs)
+        self.project_instance = kwargs.get('instance', None)
+
+        if self.project_instance:
+            self.fields['name'].disabled = True
+           
 
     def clean_name(self):
         name = self.cleaned_data['name']
@@ -39,10 +44,23 @@ class ProjectForm(forms.ModelForm):
             raise forms.ValidationError("A project with this name already exists in your account. Please choose a different name.")
 
         return name
+    def clean_number_of_reviewers(self):
+        number_of_reviewers = self.cleaned_data.get('number_of_reviewers')
+
+        if self.project_instance:
+            # Calculate the number of current members
+            current_members_count = self.project_instance.members.count()
+            # Ensure number of reviewers is greater than current members count
+            if number_of_reviewers <= current_members_count - 1:
+                raise forms.ValidationError(
+                    f'The number of reviewers must be greater than or equal to the current number of non-owner members ({current_members_count - 1}).'
+                )
+
+        return number_of_reviewers
 
     class Meta:
         model = Project
-        fields = ['name', 'rubric', 'review_guidelines', 'description', 'due_date', 'category', 'number_of_reviewers', 'is_private']
+        fields = ['name', 'description','rubric', 'review_guidelines', 'due_date', 'category', 'number_of_reviewers', 'is_private']
         labels = {
             'number_of_reviewers': 'Number of Reviewers',
             'is_private': 'Private Project',
@@ -52,6 +70,53 @@ class ProjectForm(forms.ModelForm):
             'number_of_reviewers': forms.NumberInput(attrs={'class': 'form-control'}),
             'is_private': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+
+class ProjectEditForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.owner = kwargs.pop('owner', None)  # Pop the owner argument
+        super(ProjectEditForm, self).__init__(*args, **kwargs)
+        self.project_instance = kwargs.get('instance', None)
+
+        if self.project_instance:
+            self.fields['name'].disabled = True
+           
+
+    def clean_name(self):
+        name = self.cleaned_data['name']
+
+        # Check if a project with the same name exists for the user
+        if Project.objects.filter(name=name, owner=self.owner).exists():
+            raise forms.ValidationError("A project with this name already exists in your account. Please choose a different name.")
+
+        return name
+    def clean_number_of_reviewers(self):
+        number_of_reviewers = self.cleaned_data.get('number_of_reviewers')
+
+        if self.project_instance:
+            # Calculate the number of current members
+            current_members_count = self.project_instance.members.count()
+            # Ensure number of reviewers is greater than current members count
+            if number_of_reviewers < current_members_count - 1:
+                raise forms.ValidationError(
+                    f'The number of reviewers must be greater than or equal to the current number of non-owner members ({current_members_count - 1}).'
+                )
+
+        return number_of_reviewers
+
+    class Meta:
+        model = Project
+        fields = ['name', 'description', 'due_date', 'category', 'number_of_reviewers', 'is_private']
+        labels = {
+            'number_of_reviewers': 'Number of Reviewers',
+            'is_private': 'Private Project',
+        }
+        widgets = {
+            'due_date': forms.DateInput(attrs={'type': 'date'}),
+            'number_of_reviewers': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_private': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
 
 class PromptForm(forms.ModelForm):
     class Meta:

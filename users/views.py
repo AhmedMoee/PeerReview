@@ -992,6 +992,13 @@ def upload_project_files(request, project_name, id):
                 rubric_file = request.FILES['rubric']
                 print(f'Uploading rubric {rubric_file.name} to S3...')
                 
+                if project.rubric:
+                    try:
+                        s3.delete_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key=project.rubric.name)
+                        print('Old rubric deleted from S3.')
+                    except Exception as e:
+                        print(f'Error deleting old rubric: {e}')
+
                 # Upload to S3
                 s3.upload_fileobj(
                     rubric_file,
@@ -1007,6 +1014,13 @@ def upload_project_files(request, project_name, id):
             if 'review_guidelines' in request.FILES:
                 guidelines_file = request.FILES['review_guidelines']
                 print(f'Uploading guidelines {guidelines_file.name} to S3...')
+                
+                if project.review_guidelines:
+                    try:
+                        s3.delete_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key=project.review_guidelines.name)
+                        print('Old review guidelines deleted from S3.')
+                    except Exception as e:
+                        print(f'Error deleting old review guidelines: {e}')
                 
                 # Upload to S3
                 s3.upload_fileobj(
@@ -1082,7 +1096,7 @@ def settings_edit(request):
 
     return render(request, 'settings_edit.html', {'form': form})
 
-
+from .forms import ProjectEditForm
 @login_required
 def edit_project(request, project_id):
     # Get the project, ensuring the current user is the owner
@@ -1091,7 +1105,7 @@ def edit_project(request, project_id):
 
     if request.method == 'POST':
         # Create form with POST data and existing project instance
-        form = ProjectForm(request.POST, request.FILES, instance=project)
+        form = ProjectEditForm(request.POST, request.FILES, instance=project)
         if form.is_valid():
             # Save the form
             project = form.save()
@@ -1103,7 +1117,7 @@ def edit_project(request, project_id):
             return redirect('project_main_view', project.name, project.id)
     else:
         # Prefill the form with existing project data
-        form = ProjectForm(instance=project)
+        form = ProjectEditForm(instance=project)
 
 
     return render(request, 'edit_project.html', {

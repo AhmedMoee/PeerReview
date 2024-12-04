@@ -68,6 +68,7 @@
                                 <a href="{% url 'project_main_view' project.name project.id %}" class="text-decoration-none text-primary">
                                     {{ project.name }}
                                 </a>
+                                <span class="badge bg-light text-dark me-2">[{{ project.owner.username }}]</span>
                             </h5>
                             <div class="small text-muted mb-2">
                                 {% if project.category %}
@@ -173,7 +174,7 @@
 </script>
 
 <style>
-    /.list-group-item {
+    .list-group-item {
         padding: 0.5rem 0.75rem !important; /* Reduce box padding */
         margin-bottom: 0 !important; /* Remove spacing between items */
         border-bottom: 1px solid #dee2e6; /* Optional: Add subtle border for separation */

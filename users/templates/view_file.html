@@ -5,7 +5,7 @@
 {% block content %}
 
 <div class="container mt-3">
-    <h1 class="mb-4">Viewing File: {{ upload_name }}</h1>
+    <h1 class="mb-4" style="color: #001f3f; font-weight: bold;">Viewing File: {{ upload_name }}</h1>
     {% load custom_filters %}
 
     <div class="row justify-content-center">
@@ -45,7 +45,8 @@
             </div>
 
             {% if request.user == upload_owner %}
-            <div class="update-metadata mb-4 p-4 border rounded bg-light" >
+            <button id="toggle-edit-section" class="btn btn-outline-secondary btn-sm mb-3">Edit Details</button>
+            <div id="edit-section" class="update-metadata mb-4 p-4 border rounded bg-light" style="display: none;">
                 <h3>Update File Details</h3>
                     <form method="post" enctype="multipart/form-data" class="mb-3">
                         {% csrf_token %}
@@ -165,6 +166,12 @@
                     xhr.setRequestHeader('X-CSRFToken', csrftoken);
                 }
             }
+        });
+
+        $(document).on('click', '#toggle-edit-section', function() {
+            $('#edit-section').toggle();
+            const isVisible = $('#edit-section').is(':visible');
+            $(this).text(isVisible ? 'Hide Details' : 'Edit Details');
         });
     });
 </script>

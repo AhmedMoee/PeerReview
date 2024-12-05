@@ -255,7 +255,9 @@ def leave_project(request, project_id, project_name):
     if request.user in project.members.all():
         # remove membership
         project.members.remove(request.user)
-        # # delete join request so they can request again after leaving
+        # remove project membership
+        ProjectMembership.objects.filter(user=request.user, project=project).delete()
+        # delete join request so they can request again after leaving
         JoinRequest.objects.filter(user=request.user, project=project).delete()
         messages.success(request, 'You have successfully left the project.')
     else:
@@ -1077,9 +1079,24 @@ def delete_project_resources(request, project_name, id, resource_type):
         messages.success(request, "Resource deleted successfully.")
         return redirect('project_main_view', project_name=project.name, id=project.id)
 
+
+from allauth.socialaccount.models import SocialAccount
+
 @login_required
 def settings_display(request):
-    return render(request, 'settings_display.html', {'user': request.user})
+    user = request.user
+    social_email = None
+
+    # Check if the user has a social account
+    social_account = SocialAccount.objects.filter(user=user, provider='google').first()
+    if social_account:
+        social_email = social_account.extra_data.get('email')  # Email from social account
+
+    context = {
+        'user': user,
+        'social_email': social_email,
+    }
+    return render(request, 'settings_display.html', context)
 
 @login_required
 def settings_edit(request):

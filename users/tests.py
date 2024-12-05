@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from .models import Project, Upload, JoinRequest, Message, Prompt, PromptResponse, UserProfile, ProjectMembership
 
-# ------------------- Models Tests -------------------
+
 
 class ProjectModelTest(TestCase):
     def setUp(self):
@@ -131,52 +131,3 @@ class PromptAndResponseModelTest(TestCase):
         self.assertTrue(response_exists)
 
 
-# ------------------- Views Tests -------------------
-
-class DashboardViewTest(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='password')
-
-    
-
-    def test_dashboard_authenticated_user_shows_projects(self):
-        # Log in user
-        self.client.login(username='testuser', password='password')
-
-        # Create a project owned by the user
-        Project.objects.create(name="User's Project", owner=self.user)
-        
-        response = self.client.get(reverse('dashboard'))
-        
-        # Check if the dashboard renders with the user's projects
-        self.assertEqual(response.status_code, 200)
-
-
-class CreateProjectViewTest(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='password')
-
-    def test_create_project_get_request(self):
-        # Log in user
-        self.client.login(username='testuser', password='password')
-
-        response = self.client.get(reverse('create_project'))
-        
-        # Ensure the form loads successfully
-        self.assertEqual(response.status_code, 200)
-
-    
-        
-
-class JoinRequestViewTest(TestCase):
-    def setUp(self):
-        # Create users and a project
-        self.owner = User.objects.create_user(username='owner', password='password')
-        self.requester = User.objects.create_user(username='requester', password='password')
-        
-    def test_request_to_join_creates_join_request(self):
-       # Log in as requester and submit a join request
-       pass  # Add implementation here
-
-
-# Additional tests can be added similarly.

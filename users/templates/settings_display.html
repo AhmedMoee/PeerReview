@@ -8,8 +8,10 @@
         <p><strong>Email:</strong> 
             {% if social_email %}
                 {{ social_email }}
+            
             {% endif %}</p>
-        <p><strong>Username:</strong> {{ user.username }}</p>
+            
+        <p><strong>Username:</strong> {{ user.email }}</p>
         <p><strong>First Name:</strong> {{ user.first_name }}</p>
         <p><strong>Last Name:</strong> {{ user.last_name }}</p>
         <p><strong>Joined on:</strong> {{ user.date_joined|date:"M d, Y" }}</p>

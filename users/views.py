@@ -49,11 +49,13 @@ def dashboard(request):
 def common_dashboard(request, user_name):
     owned_projects = Project.objects.filter(owner=request.user)
     member_projects = Project.objects.filter(members=request.user).exclude(owner=request.user)
-
+    requests = JoinRequest.objects.filter(project__owner=request.user, status='pending')
+    project_requests = list({request.project for request in requests})
     return render(request, 'common_dashboard.html', {
         'user_name': user_name,
         'owned_projects': owned_projects,
         'member_projects': member_projects,
+        'project_requests' : project_requests,
     })
     
 #display project list helper method    
@@ -258,6 +260,7 @@ def leave_project(request, project_id, project_name):
         # remove project membership
         ProjectMembership.objects.filter(user=request.user, project=project).delete()
         # delete join request so they can request again after leaving
+        # # delete join request so they can request again after leaving
         JoinRequest.objects.filter(user=request.user, project=project).delete()
         messages.success(request, 'You have successfully left the project.')
     else:
@@ -1078,10 +1081,7 @@ def delete_project_resources(request, project_name, id, resource_type):
         project.save()
         messages.success(request, "Resource deleted successfully.")
         return redirect('project_main_view', project_name=project.name, id=project.id)
-
-
 from allauth.socialaccount.models import SocialAccount
-
 @login_required
 def settings_display(request):
     user = request.user

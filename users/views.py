@@ -1077,9 +1077,24 @@ def delete_project_resources(request, project_name, id, resource_type):
         messages.success(request, "Resource deleted successfully.")
         return redirect('project_main_view', project_name=project.name, id=project.id)
 
+
+from allauth.socialaccount.models import SocialAccount
+
 @login_required
 def settings_display(request):
-    return render(request, 'settings_display.html', {'user': request.user})
+    user = request.user
+    social_email = None
+
+    # Check if the user has a social account
+    social_account = SocialAccount.objects.filter(user=user, provider='google').first()
+    if social_account:
+        social_email = social_account.extra_data.get('email')  # Email from social account
+
+    context = {
+        'user': user,
+        'social_email': social_email,
+    }
+    return render(request, 'settings_display.html', context)
 
 @login_required
 def settings_edit(request):

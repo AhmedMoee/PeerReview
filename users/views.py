@@ -255,7 +255,9 @@ def leave_project(request, project_id, project_name):
     if request.user in project.members.all():
         # remove membership
         project.members.remove(request.user)
-        # # delete join request so they can request again after leaving
+        # remove project membership
+        ProjectMembership.objects.filter(user=request.user, project=project).delete()
+        # delete join request so they can request again after leaving
         JoinRequest.objects.filter(user=request.user, project=project).delete()
         messages.success(request, 'You have successfully left the project.')
     else:

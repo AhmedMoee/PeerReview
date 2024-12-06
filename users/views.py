@@ -193,6 +193,8 @@ def manage_join_requests(request, project_id):
     pending_requests = JoinRequest.objects.filter(project=project, status='pending')
     return render(request, 'manage_join_requests.html', {'project': project, 'pending_requests': pending_requests})
 
+from django.db.models import F
+
 @login_required
 def approve_join_request(request, request_id):
     join_request = get_object_or_404(JoinRequest, id=request_id)
@@ -204,20 +206,28 @@ def approve_join_request(request, request_id):
     join_request.status = 'accepted'
     join_request.save()
 
+    # Add the user to the project's members
     join_request.project.members.add(join_request.user)
     ProjectMembership.objects.create(
         user=join_request.user,
         project=join_request.project,
         date_added=now()
     )
-    
+
+    # Check if the number of members exceeds the number of reviewers
+    project = join_request.project
+    if project.members.count() > project.number_of_reviewers + 1:
+        # Increase the number of reviewers to match the number of members
+        project.number_of_reviewers = F('number_of_reviewers') + 1
+        project.save(update_fields=['number_of_reviewers'])
+
     # Check for existing invitations and resolve them
     ProjectInvitation.objects.filter(
         project=join_request.project,
         invited_user=join_request.user,
         status='PENDING'
     ).update(status='ACCEPTED')
-    
+
     return redirect('manage_join_requests', project_id=join_request.project.id)
 
 @login_required

@@ -1,11 +1,13 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/bknTyRar)
-# CS 3240 Group B-10 Project
-This is a class project and is not actively monitored. No real information should be submitted to this application.
+# PeerReview
 
-Authors: Aleya Banthavong, Ahmed Mohamed, Catherine Brockenbrough, Ryan Leyhe, Kyle Phillips
+**PeerReview** is a system designed to facilitate the peer review process. It enables structured submission, evaluation, and feedback mechanisms for an excellent peer review experience.
 
-© 2024 Peer Review App, Software Engineering CS3240 UVA. All rights reserved.
+## Features
+- **User Roles:** Supports distinct functionalities for those showcasing their drafts and those providing feedback.
+- **Submission Management:** Allows users to submit videos, audio, images, and pdf files for drafts.
+- **Peer Review:** Enables users to review and provide feedback on peers' submissions.
+- **Feedback Loop:** Facilitates a feedback mechanism where users receive critiques on their reviews.
 
-
-
+## License
+This project is licensed under the MIT License.
 
